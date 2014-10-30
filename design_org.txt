@@ -1,0 +1,157 @@
+
+The circuit type is determined at compile time, not run time because of the different includes.
+ -> Another alternative is to use namespaces. Depending on what cktName is given, that namespace is used.
+ -> Right now lets have a compile-time circuit determination, instead of runtime
+
+main() 
+ -> gCktObj = gateLevelCkt, rtCktObj = rtLevelCkt
+ -> read init state into initState [here all 0s or all 1s]
+ -> set state of gCktObj and rtCktObj to the init state
+    initState.setState(gCktObj), initState.setState(rtCktObj)
+ -> read vector from file. gCktObj->simOneVector(vector), rtCktObj->simOneVector(vector)
+ -> extract state from gCktObj and rtCktObj
+    gCktState = cktState(gCktObj, vecNum)
+	rtCktState = cktState(rtCktObj, vecNum)
+ -> compare the bits which toggled. 
+    gToggleBits = {f1,f2,f3...}, rtToggleBits = {m1,m2,m3...}
+ -> candidates for matching all fs = {m1,m2,m3...} and vice versa
+ -> store candidates, and move to next vector
+ 
+ -> once all input combinations are done, select a new init state from the above states
+ -> redo for all input combinations
+
+
+abstrCkt {
+	public:
+
+	numInputs, numOutputs, numFFs
+	cktName;
+	
+	virtual simOneVector(vector) = 0;
+	virtual simMultiVector(vector[]) = 0;
+
+	virtual printInputs() = 0;
+	virtual printOutputs() = 0;
+	virtual printCurrState() = 0;
+	virtual printNextState() = 0;
+
+	readVecFile(vector[]);	// defined here
+}
+
+// vector can be vector<int> or string or just int*
+
+gateLevelCkt : public abstrCkt {
+	
+	private:
+	.
+	.
+	.
+	
+	eval(int gate)
+
+	public:
+
+	int numGates;
+
+	printInputs();
+	printOutputs();
+	printCurrState();
+	printNextState();
+
+	gateLevelCkt(char* cktName)
+	~gateLevelCkt();
+	setCktState(const cktState&)
+	simOneVector(vector) // Same as logicsim(vector)
+
+	// Not sure if this is required, since simOneVec can be called multiple times
+	simMultiCycle(vector[])	// Same as simulate vectors, but has vector as input
+}
+
+ -> setCktState(state)
+    set all FFs to the values in the string state
+ -> simOneVector(vector)
+    similar to logicsim(). Uses eval(gate) to evaluate the gates in the event wheel 
+
+rtLevelCkt : public abstrCkt {
+	
+	Vtop* cktVar;
+	cktState* prevState;
+
+	public:
+
+	printInputs();
+ 	printOutputs();
+ 	printCurrState();
+	printNextState();
+	
+	rtLevelCkt(const Vtop*);
+	~rtLevelCkt();
+	setCktState(const cktState&)
+	simOneVector(vector); 	// Can be defined in the <ckt>Int file
+	
+	// Not sure if this is required, since simOneVec can be called multiple times
+	simMultiVector(vector);	
+
+	const Vtop* getVeriObj();	// return cktVar
+	setVeriObj(const Vtop*);	// Set cktVar = input param
+
+}
+	
+ -> setCktState(state)
+    calls setCktState(Vtop*, state)
+ -> simOneVector(vector)
+    calls OneSimCycle(Vtop*, vector)
+
+cktState {
+	string stateVal;
+	int stateIdx;
+
+	cktState(cktState&);
+	cktState(const rtLevelCkt*, int);
+	cktState(const gateLevelCkt*, int);
+
+	string getState();
+	setState(rtLevelCkt*);
+	setState(gateLevelCkt*);
+
+}
+
+cktState :: cktState(const cktState&) {
+	// copy stateVal and state_index
+}
+
+string cktState :: getState() const {
+	return stateVal;
+}
+
+// ------------------- //
+// Interface file
+cktState :: cktState (const rtLevelCkt*, int) {
+	// copy the values as a string into stateVal
+	// specific to each interface file
+}
+
+cktState :: setState (rtLevelCkt*) {
+	// set the state of cktVar to this state
+}
+
+// Placed in the logicsim.cpp file?
+cktState :: cktState (const gateLevelCkt*, int) {
+	// copy the gate values of all gates present in ffList
+	// independent of the circuit
+}
+
+cktState :: setState(gateLevelCkt*) {
+	// Initialize the FFs to this state
+}
+
+rtLevelCkt :: oneSimVector(vector) {
+ -> set_input(cktVar, vector)
+ -> OneSimCycle(cktVar)
+}
+
+gateLevelCkt :: oneSimVector(vector) {
+	// same as logicsim()
+}
+
+
