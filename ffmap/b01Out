@@ -1,0 +1,89 @@
+Successfully read in circuit:
+	3 PIs.
+	2 POs.
+	5 FFs.
+	56 Total number of gates
+	9 Levels in the circuit.
+P state : XXXXX
+P state : -N/A-
+P state : XXXXX
+
+Vector: 101
+
+Gate Level Simulation
+Input : 101
+P state : 00000
+N state : 00011
+Output : 00
+
+Vector: 111
+
+Gate Level Simulation
+Input : 111
+P state : 00011
+N state : 00110
+Output : 10
+
+Vector: 001
+
+Gate Level Simulation
+Input : 001
+P state : 00110
+N state : 01101
+Output : 00
+
+Vector: 101
+
+Gate Level Simulation
+Input : 101
+P state : 01101
+N state : 00001
+Output : 10
+
+Vector: 011
+
+Gate Level Simulation
+Input : 011
+P state : 00001
+N state : 00011
+Output : 10
+
+Vector: 000
+
+Gate Level Simulation
+Input : 000
+P state : 00011
+N state : 00000
+Output : 10
+
+Vector: 001
+
+Gate Level Simulation
+Input : 001
+P state : 00000
+N state : 00010
+Output : 00
+
+Vector: 011
+
+Gate Level Simulation
+Input : 011
+P state : 00010
+N state : 01001
+Output : 00
+
+Vector: 000
+
+Gate Level Simulation
+Input : 000
+P state : 01001
+N state : 00000
+Output : 10
+
+Vector: 111
+
+Gate Level Simulation
+Input : 111
+P state : 00000
+N state : 00100
+Output : 00
