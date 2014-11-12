@@ -1,4 +1,5 @@
 #include "gateLevelSim.h"
+#include <deque>
 
 using namespace std;
 
@@ -31,6 +32,9 @@ bool PRINT_INPUT = false;
 bool PRINT_OUTPUT = false;
 bool PRINT_CURR_STATE = false;
 bool PRINT_NEXT_STATE = false;
+
+//#define EVTSIM_SCHED_ON
+//#define EVTSIM_PRINT_ON
 
 //int main(int argc, char **argv) {
 //	
@@ -127,7 +131,9 @@ gateLevelCkt::gateLevelCkt(char *cktname) {
 	fanin = vector<short>(count); 
 	fanout = vector<short>(count);	
 	levelNum = vector<int>(count);
+	
 	dffList = vector<int>();
+	stateFFList = vector<int>();
 
 	vector<int> tmp = vector<int>();
 	inList = vector< vector<int> >(count, tmp);
@@ -192,6 +198,16 @@ gateLevelCkt::gateLevelCkt(char *cktname) {
 	
 	value = vector<char>(numGates+1, 'X');
 	
+	numStateFFs = 0;
+	for (int_vec_iter ff = dffList.begin(); ff != dffList.end(); ++ff) {
+//		if ((fanout[*ff] == 1) && (gtype[outList[*ff][0]] == G_OUTPUT))
+//			continue;
+		if (!checkFanoutCone(*ff)) {
+			stateFFList.push_back(*ff);
+			numStateFFs++;
+		}
+	}
+	
 	printf("Successfully read in circuit:\n");
 	printf("\t%d PIs.\n", numInputs);
 	printf("\t%d POs.\n", numOutputs);
@@ -199,11 +215,11 @@ gateLevelCkt::gateLevelCkt(char *cktname) {
 	printf("\t%d Total number of gates\n", numGates);
 	printf("\t%d Levels in the circuit.\n", maxLevels / 5);
 	
-//	cout << "FFs: \n";
-//	for (vector<int>::iterator it = dffList.begin();
-//			it != dffList.end(); ++it) 
-//		cout << *it << " ";
-//	cout << endl;
+	cout << "FFs: " << stateFFList.size() << "\n";
+	for (vector<int>::iterator it = stateFFList.begin();
+			it != stateFFList.end(); ++it) 
+		cout << *it << " ";
+	cout << endl;
 }
 
 //void gateLevelCkt :: simulateVectors() {
@@ -268,7 +284,7 @@ gateLevelCkt::gateLevelCkt(char *cktname) {
 //}
 
 void printInpVec(const vector<int>& vecIn) {
-	for (int idx = 0; idx < vecIn.size(); ++idx) {
+	for (uint idx = 0; idx < vecIn.size(); ++idx) {
 		cout << vecIn[idx] - '0';
 	}
 	cout << endl;
@@ -283,8 +299,13 @@ void gateLevelCkt :: printInputs() {
 
 void gateLevelCkt :: printCurrState() {
 	cout << "P state : ";	
-	for (int idx = 0; idx < dffList.size(); ++idx) {
-		int gate = dffList[idx];
+//	for (uint idx = 0; idx < dffList.size(); ++idx) {
+//		int gate = dffList[idx];
+//		cout << value[gate];
+//	}
+//	cout << endl;
+	for (uint idx = 0; idx < stateFFList.size(); ++idx) {
+		int gate = stateFFList[idx];
 		cout << value[gate];
 	}
 	cout << endl;
@@ -292,8 +313,13 @@ void gateLevelCkt :: printCurrState() {
 
 void gateLevelCkt :: printNextState() {
 	cout << "N state : ";	
-	for (int idx = 0; idx < dffList.size(); ++idx) {
-		int gate = inList[dffList[idx]][0];
+//	for (uint idx = 0; idx < dffList.size(); ++idx) {
+//		int gate = inList[dffList[idx]][0];
+//		cout << value[gate];
+//	}
+//	cout << endl;
+	for (uint idx = 0; idx < stateFFList.size(); ++idx) {
+		int gate = inList[stateFFList[idx]][0];
 		cout << value[gate];
 	}
 	cout << endl;
@@ -322,88 +348,218 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 	int numLevels = maxLevels / 5;
 	int_vec tmp;
 	vector<int_vec>levelEvents(numLevels, tmp);
+	#ifdef EVTSIM_SCHED_ON
+	vector<char> sched(numGates+1, 0);
+	#endif
 	
 	assert(dffList.size() == (uint)numFFs);
-	for (int i = 0; i < dffList.size(); ++i) {
+	for (uint i = 0; i < dffList.size(); ++i) {
 		int gate = dffList[i];
 		if (value[gate] != value[inList[gate][0]]) {
 			value[gate] = value[inList[gate][0]];
 			for(int j = 0; j < fanout[gate]; ++j) {
-				int level = levelNum[outList[gate][j]];
-				levelEvents[level/5].push_back(outList[gate][j]);
+				int fngate = outList[gate][j];
+				int level = levelNum[fngate];
+				#ifdef EVTSIM_SCHED_ON
+				if (sched[fngate] == 0) {
+					levelEvents[level/5].push_back(fngate);
+					sched[fngate] = 1;
+				}
+				#else
+				levelEvents[level/5].push_back(fngate);
+				#endif
 			}
+			#ifdef EVTSIM_PRINT_ON
+			cout << "Scheduled fn[" << gate <<"]" << endl;
+			#endif
 		}
 	}
 	
 	assert(vecIn.length() == (uint)numInputs);
 	for (int gate = 1; gate <= numInputs; ++gate) {
-		if (value[gate] != vecIn[gate-1]) {
+//		if (value[gate] != vecIn[gate-1]) {
 			value[gate] = vecIn[gate-1];
 			for(int j = 0; j < fanout[gate]; ++j) {
-				int level = levelNum[outList[gate][j]];
-				levelEvents[level/5].push_back(outList[gate][j]);
+				int fngate = outList[gate][j];
+				int level = levelNum[fngate];
+				#ifdef EVTSIM_SCHED_ON
+				if (sched[fngate] == 0) {
+					levelEvents[level/5].push_back(fngate);
+					sched[fngate] = 1;
+				}
+				#else
+				levelEvents[level/5].push_back(fngate);
+				#endif
 			}
-		}
+			#ifdef EVTSIM_PRINT_ON
+			cout << "Scheduled fn[" << gate <<"]" << endl;
+			#endif
+//		}
 	}
 
-	int_vec* vecPtr;
+	/*	Simulate the event wheel */
+	#ifdef EVTSIM_PRINT_ON
+	int lvlNum = 0;
+	cout << "Event Wheel" << endl;
+	#endif
+
 	for (vector<int_vec>::iterator vt = levelEvents.begin();
 			vt != levelEvents.end(); ++vt) {
+		#ifdef EVTSIM_PRINT_ON
+		cout << lvlNum << ": ";
+		#endif
 		for (int_vec_iter it = vt->begin(); it != vt->end(); ++it) {
 			char prev_value = value[*it];
 			eval(*it);
+
+			#ifdef EVTSIM_PRINT_ON
+			cout << *it << " ";
+			#endif
+
+			#ifdef EVTSIM_SCHED_ON
+			sched[*it] = 0;
+			#endif
 			if (value[*it] != prev_value) {
 				for(int j = 0; j < fanout[*it]; ++j) {
-					int level = levelNum[outList[*it][j]];
-					levelEvents[level/5].push_back(outList[*it][j]);
+					int fngate = outList[*it][j];
+					int level = levelNum[fngate];
+					#ifdef EVTSIM_SCHED_ON
+					if (sched[fngate] == 0) {
+						levelEvents[level/5].push_back(fngate);
+						sched[fngate] = 1;
+					}
+					#else
+					levelEvents[level/5].push_back(fngate);
+					#endif
 				}
 			}
 		}
+		#ifdef EVTSIM_PRINT_ON
+		cout << endl;
+		lvlNum++;
+		#endif
 	}
+	
+	#ifdef EVTSIM_PRINT_ON
+	#ifdef EVTSIM_SCHED_ON
+	cout << "Scheduled gates: " << endl;
+	for (uint gate = 1; gate <= sched.size(); ++gate)
+		if (sched[gate])
+			cout << "(" << gate << "," << levelNum[gate] << ")";
+	cout << endl;	
+	#else
+	cout << "Scheduled gates: " << endl;
+	for (vector<int>::iterator it = levelEvents[0].begin();
+			it != levelEvents[0].end(); ++it)
+		cout << *it << " ";
+	cout << endl;
+	#endif
+	#endif
 }
+
 void gateLevelCkt :: simOneVector(const int_vec& vecIn) {
 	
 	int numLevels = maxLevels / 5;
 	int_vec tmp;
 	vector<int_vec>levelEvents(numLevels, tmp);
+	#ifdef EVTSIM_SCHED_ON
+	vector<char> sched(numGates+1, 0);
+	#endif
 	
+	/* 	Set the curr state values of the FFs	
+	   	If curr state != next state, schedule */
 	assert(dffList.size() == (uint)numFFs);
-	for (int i = 0; i < dffList.size(); ++i) {
+	for (uint i = 0; i < dffList.size(); ++i) {
 		int gate = dffList[i];
 		if (value[gate] != value[inList[gate][0]]) {
 			value[gate] = value[inList[gate][0]];
 			for(int j = 0; j < fanout[gate]; ++j) {
-				int level = levelNum[outList[gate][j]];
-				levelEvents[level/5].push_back(outList[gate][j]);
+				int fngate = outList[gate][j];
+				int level = levelNum[fngate];
+				#ifdef EVTSIM_SCHED_ON
+				if (sched[fngate] == 0) {
+					levelEvents[level/5].push_back(fngate);
+					sched[fngate] = 1;
+				}
+				#else
+				levelEvents[level/5].push_back(fngate);
+				#endif
 			}
 		}
 	}
 	
+	/*	Set the input values */
 	assert(vecIn.size() == (uint)numInputs);
 	for (int gate = 1; gate <= numInputs; ++gate) {
-		if (value[gate] != vecIn[gate-1] + '0') {
+//		if (value[gate] != vecIn[gate-1] + '0') {
 			value[gate] = vecIn[gate-1] + '0';
 			for(int j = 0; j < fanout[gate]; ++j) {
-				int level = levelNum[outList[gate][j]];
-				levelEvents[level/5].push_back(outList[gate][j]);
+				int fngate = outList[gate][j];
+				int level = levelNum[fngate];
+				#ifdef EVTSIM_SCHED_ON
+				if (sched[fngate] == 0) {
+					levelEvents[level/5].push_back(fngate);
+					sched[fngate] = 1;
+				}
+				#else
+				levelEvents[level/5].push_back(fngate);
+				#endif
 			}
-		}
+			cout << "Scheduled fn[" << gate <<"]" << endl;
+//		}
 	}
 
-	int_vec* vecPtr;
+	/*	Simulate the event wheel */
+	#ifdef EVTSIM_PRINT_ON
+	int lvlNum = 0;
+	cout << "Event Wheel" << endl;
+	#endif
 	for (vector<int_vec>::iterator vt = levelEvents.begin();
 			vt != levelEvents.end(); ++vt) {
+		#ifdef EVTSIM_PRINT_ON
+		cout << lvlNum << ": ";
+		#endif
 		for (int_vec_iter it = vt->begin(); it != vt->end(); ++it) {
 			char prev_value = value[*it];
 			eval(*it);
+			#ifdef EVTSIM_SCHED_ON
+			sched[*it] = 0;
+			#endif
+			cout << *it << " ";
 			if (value[*it] != prev_value) {
 				for(int j = 0; j < fanout[*it]; ++j) {
-					int level = levelNum[outList[*it][j]];
-					levelEvents[level/5].push_back(outList[*it][j]);
+					int fngate = outList[*it][j];
+					int level = levelNum[fngate];
+					#ifdef EVTSIM_SCHED_ON
+					if (sched[fngate] == 0) {
+						levelEvents[level/5].push_back(fngate);
+						sched[fngate] = 1;
+					}
+					#else
+					levelEvents[level/5].push_back(fngate);
+					#endif
 				}
 			}
 		}
+		#ifdef EVTSIM_PRINT_ON
+		cout << endl;
+		lvlNum++;
+		#endif
 	}
+	
+	#ifdef EVTSIM_SCHED_ON
+	cout << "Scheduled gates: " << endl;
+	for (uint gate = 1; gate <= sched.size(); ++gate)
+		if (sched[gate])
+			cout << "(" << gate << "," << levelNum[gate] << ")";
+	cout << endl;	
+	#else
+	cout << "Scheduled gates: " << endl;
+	for (vector<int>::iterator it = levelEvents[0].begin();
+			it != levelEvents[0].end(); ++it)
+		cout << *it << " ";
+	cout << endl;
+	#endif
 }
 
 int gateLevelCkt::eval(int gate) {
@@ -531,20 +687,58 @@ int gateLevelCkt::eval(int gate) {
 }
 
 string gateLevelCkt :: getCktState() const {
-	string state(numFFs, 'X');
-	for (int ffIdx = 0; ffIdx < numFFs; ++ffIdx)
-		state[ffIdx] = value[dffList[ffIdx]];
+	string state(numStateFFs, 'X');
+	for (int ffIdx = 0; ffIdx < numStateFFs; ++ffIdx)
+		state[ffIdx] = value[stateFFList[ffIdx]];
 	
 	return state;
 }
 
 void gateLevelCkt :: setCktState(const cktState& state) {
 	string stateVal = state.getState();
-	for (int ffIdx = 0; ffIdx < numFFs; ++ffIdx) {
-		int gate = dffList[ffIdx];
+	cout << stateVal.length() << ": : " <<endl;
+	assert(stateVal.length() == (uint)numStateFFs);
+	
+//	cout << "S: " << stateVal << endl;
+	for (int ffIdx = 0; ffIdx < numStateFFs; ++ffIdx) {
+		int gate = stateFFList[ffIdx];
 		value[inList[gate][0]] = stateVal[ffIdx];
+		if (stateVal[ffIdx] == 'X')
+			value[gate] = (char) ((rand() & 0x1) + '0');
+		else
+			value[gate] = (char) (((stateVal[ffIdx] - '0') ^ 1) + '0');
+//		cout << value[inList[gate][0]] << "-" << value[gate] << " ";
 	}
+	cout << endl;
 }
+
+bool gateLevelCkt :: checkFanoutCone(int ffInd) {
+	
+	bool outFF = true;
+	deque<int> qBFS;
+	qBFS.push_back(ffInd);
+	
+	vector<int> visited(numGates, 1);
+
+	while(outFF && qBFS.size()) {
+		int gate = qBFS.front();
+		qBFS.pop_front();
+		for (int idx = 0; idx < fanout[gate]; ++idx) {
+			int fngate = outList[gate][idx];
+			if ((gtype[fngate] == G_DFF) && (fngate != ffInd)) {
+				outFF = false;
+				break;
+			}
+			else if (visited[fngate]) {
+				qBFS.push_back(fngate);
+				visited[fngate] = 0;
+			}
+		}
+	}
+	
+	return outFF;
+}
+
 
 cktState :: cktState(const gateLevelCkt* ckt, int idx) {
 	

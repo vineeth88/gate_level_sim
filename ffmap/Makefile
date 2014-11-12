@@ -1,4 +1,4 @@
-BENCH = b01
+BENCH = b07
 DEFINE_BENCH = -D__${BENCH}
 BENCH_DIR = ./${BENCH}
 LIBS =  ${BENCH_DIR}/Vtop__ALL.a

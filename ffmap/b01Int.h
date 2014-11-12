@@ -14,8 +14,8 @@
 
 const int NUM_INPUTS = 2;
 const int NUM_INPUT_BITS = 2;
-const int NUM_OUTPUTS = 2;
-const int NUM_OUTPUT_BITS = 2;
+const int NUM_OUTPUTS = 4;
+const int NUM_OUTPUT_BITS = 6;
 const int NUM_STATE_BITS = 3;
 
 const int NUM_BRANCH = 26;

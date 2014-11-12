@@ -1,36 +1,28 @@
-#include "b01Int.h"
-#include "circuit.h"
+#include "b06Int.h"
+#include <bitset>
 #include "rtLevelSim.h"
 
 using namespace std;
 
-//bool INIT = false;
-//char INIT_VAL = '0';
-//bool PRINT_INPUT = false;
-//bool PRINT_OUTPUT = false;
-//bool PRINT_CURR_STATE = false;
-//bool PRINT_NEXT_STATE = false;
-
-// String -> Integer values
 void set_input(Vtop *top, const vecIn_t& input) {
 	assert(input.length() == (uint)NUM_INPUT_BITS + 1);
-	top->line1 = input[0] - 48;
-	top->line2 = input[1] - 48;
+	top->eql = input[0] - 48;
+	top->cont_eql = input[1] - 48;
 	top->reset = ((input[2] - 48) & 1) ^ 1;
 }
 
 void set_input(Vtop* top, const int_vec& input) {
 	assert(input.size() == (uint)NUM_INPUT_BITS + 1);
-	top->line1 = input[0] & 1;
-	top->line2 = input[1] & 1;
+	top->eql = input[0] & 1;
+	top->cont_eql = input[1] & 1;
 	top->reset = (input[2] & 1) ^ 1;
 }
 
 inline
 void rtLevelCkt :: printInputs() {
 	cout << "Input : ";
-	cout << (uint) (cktVar->line1 & 1)
-		 << (uint) (cktVar->line2 & 1)
+	cout << (uint) (cktVar->eql & 1)
+		 << (uint) (cktVar->cont_eql & 1)
 		 << (uint) (cktVar->reset & 1)
 		 << endl;
 }
@@ -38,8 +30,10 @@ void rtLevelCkt :: printInputs() {
 inline
 void rtLevelCkt :: printOutputs() {
 	cout << "Output : ";
-	cout << (uint) (cktVar->outp & 1)
-		 << (uint) (cktVar->overflw & 1)
+	cout << (std::bitset<2>)(cktVar->cc_mux & 3)
+		 << (std::bitset<2>)(cktVar->uscite & 3)
+		 << (std::bitset<1>)(cktVar->enable_count & 1)
+		 << (std::bitset<1>)(cktVar->ackout & 1)
 		 << endl;
 }
 
@@ -76,15 +70,13 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 		val = ((val << 1) | ((stateStr[i] - '0') & 0x1));
 	}
 	
-	cktVar->v__DOT__process_1_stato = val;
+	cktVar->v__DOT__curr_state = val;
 	
 //	cout << "Set state to " << val << endl;
 	if (currState)
 		delete currState;
 
 	this->currState = new cktState(state);
-//	cktVar->outp = stateStr[3] - '0';
-//	cktVar->overflw = stateStr[4] - '0';
 }
 
 cktState :: cktState(const rtLevelCkt* ckt, int idx) {
@@ -96,7 +88,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 
 	stateIdx = idx;
 	stateVal = std::string(ckt->numFFs, '0');
-	int val = (uint)cktVar->v__DOT__process_1_stato;
+	int val = (uint)cktVar->v__DOT__curr_state;
 	
 //	cout << endl << "CktState (rtl)"
 //		 << endl << val << endl;
@@ -107,15 +99,11 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 		val = val >> 1;
 	}
 
-//	cout << stateVal << endl;
-//	stateVal[3] = (char) cktVar->outp + '0';
-//	stateVal[4] = (char) cktVar->overflw + '0';
-
 }
 
 //void SimMultiCycle(Vtop* top, int NUM_CYCLES) {
 //
-//    vecIn_t vecIn(CONST_NUM_INPUT_BITS,'0');
+//    vecIn_t vecIn(CONST_NUM_INPUT_BITS, '0');
 //    init_reset_clock(top);
 //
 //    bool rstFlag = false;
@@ -174,10 +162,32 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 //        
 //}
 //
+//void SimOneCycle(Vtop* top, vecIn_t& vecIn) {
+//	
+//    uint main_time = 0;
+//	sim_reset_clock(top);
+//	//cout << "Simulating " << vecIn << endl;
+//	
+//	assert (vecIn.length() == (uint)CONST_NUM_INPUT_BITS);
+//	#ifdef _ResetMask_
+//	ModifyVecIn(vecIn, gVarClass::resetInput);
+//	#endif
+//    while ((main_time < 2) && !Verilated::gotFinish()) {
+//    	if (start_sim(top))
+//            set_input(top, vecIn);
+//
+//        top->eval();
+//
+//        main_time++;
+//        ToggleClk(top);
+//    }
+//   	
+//}
+//	
 //void setAllXState(Vtop* top) {
-//    top->v__DOT__process_1_stato = rand() & 0x07;
+//    top->v__DOT__curr_state = rand() & 0x07;
 //}
 //
 //void printCktState (Vtop* top) {
-//	cout << (uint) top->v__DOT__process_1_stato << endl;
+//    cout << (uint) top->v__DOT__curr_state << endl ;
 //}

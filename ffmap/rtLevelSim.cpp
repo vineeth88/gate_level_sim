@@ -5,7 +5,7 @@ rtLevelCkt :: rtLevelCkt(Vtop* cktParam) {
 	
 	this->numInputs = NUM_INPUT_BITS + 1;	// Inputs + Reset
 	this->numOutputs = NUM_OUTPUT_BITS;
-	this->numFFs = NUM_STATE_BITS + NUM_OUTPUT_BITS;	// FFs + Outputs 
+	this->numFFs = NUM_STATE_BITS;	// Only FFs, no Outputs 
 	
 	this->prevState = NULL;
 	this->currState = NULL;

@@ -29,13 +29,29 @@ int main(int argc, char** argv) {
 	rtLevelCkt* vCkt = new rtLevelCkt(ckt);
 	vCkt->printCurrState();
 	
-	cktState initS0("00000", 0);
+	string init0str(NUM_STATE_BITS, '0');
+	cktState initS0(init0str.c_str(), 0);
 
-	gCkt->setCktState(initS0);
+	string init0gstr(gCkt->numStateFFs, '0');
+	cktState initS0g(init0gstr.c_str(), 0);
+
+	gCkt->setCktState(initS0g);
+	gCkt->printCurrState();
+	vecIn_t inp (gCkt->numInputs, 'X');
+
+	gCkt->simOneVector(inp);
 	gCkt->printCurrState();
 
+	cout << endl
+		 << "RTL Simulation" << endl;
 	vCkt->setCktState(initS0);
 	
+	vCkt->printCurrState();	
+	vCkt->printInputs();
+	vCkt->printNextState();
+	vCkt->printOutputs();
+	
+
 	for (int cnt = 0; cnt < 10; cnt ++) {
 	vecIn_t vecIn;
 	RandomVecIn(vecIn, gCkt->numInputs);
@@ -44,7 +60,7 @@ int main(int argc, char** argv) {
 
 	cout << endl
 		 << "Gate Level Simulation" << endl;
-//	gCkt->setCktState(initS0);
+	gCkt->setCktState(initS0g);
 	
 	gCkt->simOneVector(vecIn);
 	
@@ -53,17 +69,17 @@ int main(int argc, char** argv) {
 	gCkt->printNextState();
 	gCkt->printOutputs();
 	
-//	cout << endl
-//		 << "RTL Simulation" << endl;
-//
-////	vCkt->setCktState(initS0);
-//	vCkt->printCurrState();
-//	
-//	vCkt->simOneVector(vecIn);
-//
-//	vCkt->printInputs();
-//	vCkt->printNextState();
-//	vCkt->printOutputs();
+	cout << endl
+		 << "RTL Simulation" << endl;
+
+	vCkt->setCktState(initS0);
+	vCkt->simOneVector(vecIn);
+
+	vCkt->printInputs();
+	vCkt->printCurrState();
+	
+	vCkt->printNextState();
+	vCkt->printOutputs();
 
 	}
 	return 0;

@@ -22,11 +22,14 @@ class gateLevelCkt : public abstrCkt{
 	vector<char> value;		
 
 	int_vec dffList;	// stores gateIds of all FFs
+	int_vec stateFFList;
 
 	gateLevelCkt();
 	public:
 	
 	int numGates;
+	int numStateFFs;
+
 	gateLevelCkt(char*);
 	int eval(int);	
 	void simOneVector(const int_vec&);	
@@ -41,6 +44,8 @@ class gateLevelCkt : public abstrCkt{
 	void printOutputs();
 	void printCurrState();
 	void printNextState();
+	
+	bool checkFanoutCone(int);
 };
 
 #endif 	// __GATE_LEVEL_SIM_H__
