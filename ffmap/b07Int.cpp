@@ -27,7 +27,7 @@ void rtLevelCkt :: printInputs() {
 inline
 void rtLevelCkt :: printOutputs() {
 	cout << "Output : ";
-	cout << (std::bitset<2>)(cktVar->punti_retta & 0xff)
+	cout << (std::bitset<8>)(cktVar->punti_retta & 0xff)
 		 << endl;
 }
 
@@ -92,7 +92,24 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 		}
 
 	}
-//	
+
+	cktVar->v__DOT__mem[0] = 1;
+	cktVar->v__DOT__mem[1] = 0xff;
+	cktVar->v__DOT__mem[2] = 0;
+	cktVar->v__DOT__mem[3] = 0;
+	cktVar->v__DOT__mem[4] = 0;
+	cktVar->v__DOT__mem[5] = 2;
+	cktVar->v__DOT__mem[6] = 0;
+	cktVar->v__DOT__mem[7] = 0;
+	cktVar->v__DOT__mem[8] = 0;
+	cktVar->v__DOT__mem[9] = 2;
+	cktVar->v__DOT__mem[0xa] = 0xff;
+	cktVar->v__DOT__mem[0xb] = 5;
+	cktVar->v__DOT__mem[0xc] = 0;
+	cktVar->v__DOT__mem[0xd] = 2;
+	cktVar->v__DOT__mem[0xe] = 0;
+	cktVar->v__DOT__mem[0xf] = 2;
+
 //	for (int i = 0; i < 128; i++) {
 //
 //		val = ((val << 1) | ((stateStr[i] - '0') & 0x1));
@@ -122,7 +139,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	
 	int i = 2;
 	
-	int val = (uint)cktVar->v__DOT__stato;
+	int val = (uint)(cktVar->v__DOT__stato & 0x7);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
@@ -130,7 +147,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	}
 	
 	i = 10;
-	val = (uint)cktVar->v__DOT__cont;
+	val = (uint)(cktVar->v__DOT__cont & 0xff);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
@@ -138,7 +155,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	}
 
 	i = 18;
-	val = (uint)cktVar->v__DOT__mar;
+	val = (uint)(cktVar->v__DOT__mar & 0xff);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
@@ -146,7 +163,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	}
 
 	i = 26;
-	val = (uint)cktVar->v__DOT__x;
+	val = (uint)(cktVar->v__DOT__x & 0xff);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
@@ -154,7 +171,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	}
 	
 	i = 34;
-	val = (uint)cktVar->v__DOT__y;
+	val = (uint)(cktVar->v__DOT__y & 0xff);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
@@ -162,7 +179,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	}
 
 	i = 42;
-	val = (uint)cktVar->v__DOT__t;
+	val = (uint)(cktVar->v__DOT__t & 0xff);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;

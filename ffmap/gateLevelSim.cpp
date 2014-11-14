@@ -33,9 +33,10 @@ bool PRINT_OUTPUT = false;
 bool PRINT_CURR_STATE = false;
 bool PRINT_NEXT_STATE = false;
 
-//#define EVTSIM_SCHED_ON
+#define EVTSIM_SCHED_ON
 //#define EVTSIM_PRINT_ON
 
+bool SET_CKT_STATE = false;
 //int main(int argc, char **argv) {
 //	
 //	char cktName[80];
@@ -353,12 +354,29 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 	#endif
 	
 	assert(dffList.size() == (uint)numFFs);
-	for (uint i = 0; i < dffList.size(); ++i) {
-		int gate = dffList[i];
-		if (value[gate] != value[inList[gate][0]]) {
-			value[gate] = value[inList[gate][0]];
-			for(int j = 0; j < fanout[gate]; ++j) {
+	if (SET_CKT_STATE) {
+		for (uint i = 0; i < dffList.size(); ++i) {
+			int gate = dffList[i];
+			// Simulate all fanouts of FF
+			for (int j = 0; j < fanout[gate]; ++j) {
 				int fngate = outList[gate][j];
+				int level = levelNum[fngate];
+				#ifdef EVTSIM_SCHED_ON
+				if (sched[fngate] == 0) {
+					levelEvents[level/5].push_back(fngate);
+					sched[fngate] = 1;
+				}
+				#else
+				levelEvents[level/5].push_back(fngate);
+				#endif
+			}
+
+			// Simulate the succOfPred != FF 
+			int ingate = inList[gate][0];
+			for (int j = 0; j < fanout[ingate]; ++j) {
+				int fngate = outList[ingate][j];
+				if (fngate == gate)
+					continue;
 				int level = levelNum[fngate];
 				#ifdef EVTSIM_SCHED_ON
 				if (sched[fngate] == 0) {
@@ -372,12 +390,38 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 			#ifdef EVTSIM_PRINT_ON
 			cout << "Scheduled fn[" << gate <<"]" << endl;
 			#endif
+
 		}
+		SET_CKT_STATE = false;
 	}
-	
+	else {
+		for (uint i = 0; i < dffList.size(); ++i) {
+			int gate = dffList[i];
+			if (value[gate] != value[inList[gate][0]]) {
+				value[gate] = value[inList[gate][0]];
+				for(int j = 0; j < fanout[gate]; ++j) {
+					int fngate = outList[gate][j];
+					int level = levelNum[fngate];
+					#ifdef EVTSIM_SCHED_ON
+					if (sched[fngate] == 0) {
+						levelEvents[level/5].push_back(fngate);
+						sched[fngate] = 1;
+					}
+					#else
+					levelEvents[level/5].push_back(fngate);
+					#endif
+				}
+				#ifdef EVTSIM_PRINT_ON
+				cout << "Scheduled fn[" << gate <<"]" << endl;
+				#endif
+			}
+		}
+	}	
+
+	// Schedule inputs
 	assert(vecIn.length() == (uint)numInputs);
 	for (int gate = 1; gate <= numInputs; ++gate) {
-//		if (value[gate] != vecIn[gate-1]) {
+		if (value[gate] != vecIn[gate-1]) {
 			value[gate] = vecIn[gate-1];
 			for(int j = 0; j < fanout[gate]; ++j) {
 				int fngate = outList[gate][j];
@@ -394,7 +438,7 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 			#ifdef EVTSIM_PRINT_ON
 			cout << "Scheduled fn[" << gate <<"]" << endl;
 			#endif
-//		}
+		}
 	}
 
 	/*	Simulate the event wheel */
@@ -457,6 +501,7 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 	#endif
 }
 
+// TODO!! Has to be modified accordingly to changes above
 void gateLevelCkt :: simOneVector(const int_vec& vecIn) {
 	
 	int numLevels = maxLevels / 5;
@@ -678,10 +723,11 @@ int gateLevelCkt::eval(int gate) {
 			return -1;
 	}
 	
-	assert((opVal == 0) || (opVal == 1) || (opVal == XVAL));
 
-	if((gtype[gate] != G_INPUT) && (gtype[gate] != G_DFF))
+	if((gtype[gate] != G_INPUT) && (gtype[gate] != G_DFF)) {
+		assert((opVal == 0) || (opVal == 1) || (opVal == XVAL));
 		value[gate] = (char) (opVal + '0');
+	}
 
 	return 0;
 }
@@ -689,28 +735,42 @@ int gateLevelCkt::eval(int gate) {
 string gateLevelCkt :: getCktState() const {
 	string state(numStateFFs, 'X');
 	for (int ffIdx = 0; ffIdx < numStateFFs; ++ffIdx)
-		state[ffIdx] = value[stateFFList[ffIdx]];
+		state[ffIdx] = value[inList[stateFFList[ffIdx]][0]];
 	
 	return state;
 }
 
 void gateLevelCkt :: setCktState(const cktState& state) {
 	string stateVal = state.getState();
-	cout << stateVal.length() << ": : " <<endl;
+	//cout << stateVal.length() << ": : " <<endl;
 	assert(stateVal.length() == (uint)numStateFFs);
 	
-//	cout << "S: " << stateVal << endl;
 	for (int ffIdx = 0; ffIdx < numStateFFs; ++ffIdx) {
 		int gate = stateFFList[ffIdx];
-		value[inList[gate][0]] = stateVal[ffIdx];
-		if (stateVal[ffIdx] == 'X')
-			value[gate] = (char) ((rand() & 0x1) + '0');
-		else
-			value[gate] = (char) (((stateVal[ffIdx] - '0') ^ 1) + '0');
-//		cout << value[inList[gate][0]] << "-" << value[gate] << " ";
+		value[gate] = stateVal[ffIdx];
 	}
-	cout << endl;
+
+	SET_CKT_STATE = true;
+//	cout << endl;
 }
+
+//void gateLevelCkt :: setCktState(const cktState& state) {
+//	string stateVal = state.getState();
+//	//cout << stateVal.length() << ": : " <<endl;
+//	assert(stateVal.length() == (uint)numStateFFs);
+//	
+////	cout << "S: " << stateVal << endl;
+//	for (int ffIdx = 0; ffIdx < numStateFFs; ++ffIdx) {
+//		int gate = stateFFList[ffIdx];
+//		value[inList[gate][0]] = stateVal[ffIdx];
+//		if (stateVal[ffIdx] == 'X')
+//			value[gate] = (char) ((rand() & 0x1) + '0');
+//		else
+//			value[gate] = (char) (((stateVal[ffIdx] - '0') ^ 1) + '0');
+////		cout << value[inList[gate][0]] << "-" << value[gate] << " ";
+//	}
+////	cout << endl;
+//}
 
 bool gateLevelCkt :: checkFanoutCone(int ffInd) {
 	

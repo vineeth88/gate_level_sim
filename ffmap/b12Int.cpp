@@ -12,7 +12,7 @@ void set_input(Vtop *top, const vecIn_t& input) {
 	for(uint i = 0; i < 4; ++i) {
 		top->k = ((top->k << 1) | ((input[1+i] - '0')& 1));
 	}
-	top->reset = ((input[2] - 48) & 1) ^ 1;
+	top->reset = ((input[5] - '0') & 1) ^ 1;
 }
 
 void set_input(Vtop *top, const int_vec& input) {
@@ -23,7 +23,7 @@ void set_input(Vtop *top, const int_vec& input) {
 	for(uint i = 0; i < 4; ++i) {
 		top->k = ((top->k << 1) | (input[1+i] & 1));
 	}
-	top->reset = (input[2] & 1) ^ 1;
+	top->reset = (input[5] & 1) ^ 1;
 }
 
 inline
@@ -177,7 +177,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	
 //	cout << endl << "CktState (rtl)"
 //		 << endl << val << endl;
-	stateVal[0] = (cktVar->v__DOT__wr & 1);
+	stateVal[0] = (cktVar->v__DOT__wr & 1) + '0';
 
 	int i = 5;
 	int val = (uint)(cktVar->v__DOT__address & 0x1f);

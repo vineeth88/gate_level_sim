@@ -14,8 +14,8 @@
 
 const int NUM_INPUT = 2;
 const int NUM_INPUT_BITS = 5;
-const int NUM_OUTPUT = 2;
-const int NUM_OUTPUT_BITS = 5;
+const int NUM_OUTPUT = 3;
+const int NUM_OUTPUT_BITS = 6;
 const int NUM_STATE_BITS = 115;
 const int NUM_CTRL_BITS = 30;
 

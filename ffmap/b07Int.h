@@ -16,7 +16,7 @@ const int NUM_INPUT = 1;
 const int NUM_INPUT_BITS = 1;
 const int NUM_OUTPUT = 1;
 const int NUM_OUTPUT_BITS = 8;
-const int NUM_STATE_BITS = 43; // + 128;
+const int NUM_STATE_BITS = 43;// + 128;
 
 const int NUM_BRANCH = 20;
 const int NUM_VARS = 6;
