@@ -34,9 +34,10 @@ VL_MODULE(Vtop) {
     // Internals; generally not touched by application code
     VL_SIG8(v__DOT__r_in,5,0);
     VL_SIG8(v__DOT__stato,3,0);
-    VL_SIG8(v__DOT__cont,5,0);
+    VL_SIG8(v__DOT__cont,4,0);
     //char	__VpadToAlign15[1];
-    VL_SIG(v__DOT__cont1,31,0);
+    VL_SIG16(v__DOT__cont1,8,0);
+    //char	__VpadToAlign18[2];
     
     // LOCAL VARIABLES
     // Internals; generally not touched by application code

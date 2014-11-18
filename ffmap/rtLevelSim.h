@@ -30,6 +30,7 @@ class rtLevelCkt : public abstrCkt {
 	void simOneVector(const vecIn_t&);
 	void simOneVector(const int_vec&);
 
+	string getCktState() const;
 	void setCktState(const cktState&);
 	void setVeriObj(Vtop*);
  	const Vtop* getVeriObj() const;

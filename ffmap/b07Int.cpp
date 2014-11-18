@@ -124,15 +124,11 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 	this->currState = new cktState(state);
 }
 
-cktState :: cktState(const rtLevelCkt* ckt, int idx) {
-	
-	assert(ckt != NULL);
+string rtLevelCkt :: getCktState() const {
 
-	const Vtop* cktVar = ckt->getVeriObj();
 	assert(cktVar != NULL);
-
-	stateIdx = idx;
-	stateVal = std::string(ckt->numFFs, '0');
+	
+	string stateVal = std::string(numFFs, '0');
 	
 //	cout << endl << "CktState (rtl)"
 //		 << endl << val << endl;
@@ -195,7 +191,8 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 //			val = val >> 1;
 //		}
 //	}
-
+	
+	return stateVal;
 }
 
 //void state_t::setCktState(Vtop* top) {

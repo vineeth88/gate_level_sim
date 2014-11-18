@@ -76,3 +76,12 @@ void rtLevelCkt :: setVeriObj(Vtop* ckt) {
 const Vtop* rtLevelCkt :: getVeriObj() const {
 	return cktVar;
 }
+
+cktState :: cktState(const rtLevelCkt* ckt, int idx) {
+	assert(ckt != NULL);
+
+	stateIdx = idx;
+	stateVal = ckt->getCktState(); 
+
+}
+

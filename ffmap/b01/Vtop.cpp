@@ -32,32 +32,32 @@ void Vtop::__Vconfigure(Vtop__Syms* vlSymsp, bool first) {
     if (0 && first) {}  // Prevent unused
     this->__VlSymsp = vlSymsp;
     // Coverage Declarations
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[0]), first, "top.v", 68, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[1]), first, "top.v", 79, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[2]), first, "top.v", 84, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[3]), first, "top.v", 77, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[4]), first, "top.v", 92, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[5]), first, "top.v", 97, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[6]), first, "top.v", 90, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[7]), first, "top.v", 105, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[8]), first, "top.v", 110, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[9]), first, "top.v", 103, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[10]), first, "top.v", 118, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[11]), first, "top.v", 123, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[12]), first, "top.v", 116, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[13]), first, "top.v", 131, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[14]), first, "top.v", 136, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[15]), first, "top.v", 129, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[16]), first, "top.v", 144, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[17]), first, "top.v", 149, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[18]), first, "top.v", 142, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[19]), first, "top.v", 157, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[20]), first, "top.v", 162, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[21]), first, "top.v", 155, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[22]), first, "top.v", 170, 0, ".v", "v_line/b01", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[23]), first, "top.v", 175, 0, ".v", "v_line/b01", "else");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[24]), first, "top.v", 168, 0, ".v", "v_line/b01", "case");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[25]), first, "top.v", 75, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[0]), first, "b01.v", 68, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[1]), first, "b01.v", 79, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[2]), first, "b01.v", 84, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[3]), first, "b01.v", 77, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[4]), first, "b01.v", 92, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[5]), first, "b01.v", 97, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[6]), first, "b01.v", 90, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[7]), first, "b01.v", 105, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[8]), first, "b01.v", 110, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[9]), first, "b01.v", 103, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[10]), first, "b01.v", 118, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[11]), first, "b01.v", 123, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[12]), first, "b01.v", 116, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[13]), first, "b01.v", 131, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[14]), first, "b01.v", 136, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[15]), first, "b01.v", 129, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[16]), first, "b01.v", 144, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[17]), first, "b01.v", 149, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[18]), first, "b01.v", 142, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[19]), first, "b01.v", 157, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[20]), first, "b01.v", 162, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[21]), first, "b01.v", 155, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[22]), first, "b01.v", 170, 0, ".v", "v_line/b01", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[23]), first, "b01.v", 175, 0, ".v", "v_line/b01", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[24]), first, "b01.v", 168, 0, ".v", "v_line/b01", "case");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[25]), first, "b01.v", 75, 0, ".v", "v_line/b01", "else");
 }
 
 Vtop::~Vtop() {
@@ -116,7 +116,7 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
     VL_DEBUG_IF(VL_PRINTF("    Vtop::_sequent__TOP__1\n"); );
     Vtop* __restrict vlTOPp VL_ATTR_UNUSED = vlSymsp->TOPp;
     // Body
-    // ALWAYS at top.v:66
+    // ALWAYS at b01.v:66
     if (vlTOPp->reset) {
 	++(vlSymsp->__Vcoverage[0]);
 	vlTOPp->v__DOT__process_1_stato = 0;

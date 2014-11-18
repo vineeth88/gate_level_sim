@@ -1,7 +1,9 @@
 #include "incl.h"
 #include "gateLevelSim.h"
 #include "rtLevelSim.h"
+#include <algorithm>
 
+//#define ABCD 
 void RandomVecIn(vecIn_t& vecIn, int NUM_INPUT_BITS) {
 	vecIn = string(NUM_INPUT_BITS, '0');
     for (uint i = 0; i < vecIn.size(); i++) 
@@ -24,6 +26,7 @@ void printVec(int_vec& inVec) {
 	cout << endl;
 }
 
+#define MAPPING_LIST_OFF
 int main(int argc, char** argv) {
 	
 	char gCktName[80];
@@ -42,245 +45,239 @@ int main(int argc, char** argv) {
 	cout << numFFs 
 		 << " FFs -> " << NUM_STATE_BITS 
 		 << " Reg Mapping." << endl; 
-	
-	// Data structure for mapping
-	int_vec regArr(NUM_STATE_BITS,0);
-	int_vec dffArr(numFFs,0);
-	vector<int_vec> ffMapArr(numFFs, regArr);
 
-	// ALL ZEROS
+	int numVec = vecFromFile.size();
+	
+	vector<string> gCktStrVec(numVec+1);
+	vector<string> vCktStrVec(numVec+1);
+
+	/* ALL ZEROS STATE	*/
 	string init0str(NUM_STATE_BITS, '0');
 	cktState *initS0 = new cktState(init0str.c_str(), 0);
 
 	string init0str_g(gCkt->numStateFFs, '0');
 	cktState *initS0_g = new cktState(init0str_g.c_str(), 0);
-
-//	gCkt->setCktState(initS0_g);
-//	gCkt->printCurrState();
-//	vecIn_t inp (gCkt->numInputs, 'X');
-//
-//	gCkt->simOneVector(inp);
-//	gCkt->printCurrState();
-//
-//	cout << endl
-//		 << "RTL Simulation" << endl;
-//	vCkt->setCktState(initS0);
-//	
-//	vCkt->printCurrState();	
-//	vCkt->printInputs();
-//	vCkt->printNextState();
-//	vCkt->printOutputs();
 	
-	vector<cktState*> gCktStateVec;
-	vector<cktState*> vCktStateVec;
+	gCktStrVec[0] = init0str_g;
+	vCktStrVec[0] = init0str;
 
-	gCktStateVec.push_back(initS0_g);
-	vCktStateVec.push_back(initS0);
-
-	// ALL ONES
-//	string init1str(NUM_STATE_BITS, '1');
-//	cktState *initS1 = new cktState(init1str.c_str(), 0);
-//
-//	string init1str_g(gCkt->numStateFFs, '1');
-//	cktState *initS1_g = new cktState(init1str_g.c_str(), 0);
-//
-//	gCktStateVec.push_back(initS1_g);
-//	vCktStateVec.push_back(initS1);
-
-	const int NUM_INPUT_COMBI = 4;//1 << NUM_INPUT_BITS;
-	int NUM_ROUNDS = vecFromFile.size() - NUM_INPUT_COMBI;
-//	if (NUM_ROUNDS > 100)
-//		NUM_ROUNDS = 100;
+	gCkt->setCktState(*initS0_g);
+	vCkt->setCktState(*initS0);
 	
-	vecIn_t inp (gCkt->numInputs, 'X');
-	
-	for (int cnt = 0; cnt < NUM_ROUNDS; ++cnt) {
-		//cktState *gInitSt = gCktStateVec[2*cnt];
-		//cktState *vInitSt = vCktStateVec[2*cnt];
+	#ifndef ABCD
+	for (int idx = 0; idx < numVec; ++idx) {
+		vecIn_t vecIn = vecFromFile[idx];
+		gCkt->simOneVector(vecIn);
+		vCkt->simOneVector(vecIn);
 
-		vector<vecIn_t> inputVec(NUM_INPUT_COMBI, inp);
-		vecIn_t vecIn;
-		for (int idx = 0; idx < NUM_INPUT_COMBI; idx++) {
-//			RandomVecIn(vecIn, NUM_INPUT_BITS);
-//			vecIn += '1';
-			inputVec[idx] = vecFromFile[cnt+idx];
-		}
-
-		// ALL ZEROS
-		for (int idx = 0; idx < NUM_INPUT_COMBI; idx++) {
-			vecIn = inputVec[idx];
-			cout << "Vector: " << vecIn << endl;
-
-			cktState *gInitSt = gCktStateVec[cnt];
-			cktState *vInitSt = vCktStateVec[cnt];
-
-			cout << "Gate Level Simulation" << endl;
-			gCkt->setCktState(*gInitSt);
-			gCkt->simOneVector(vecIn);
-			
-			cout << "RTL Simulation" << endl;
-			vCkt->setCktState(*vInitSt);
-			vCkt->simOneVector(vecIn);
-
-			gCkt->printInputs();
-			vCkt->printInputs();
-
-			gCkt->printCurrState();
-			vCkt->printCurrState();
-
-			gCkt->printNextState();
-			vCkt->printNextState();
-
-			gCkt->printOutputs();
-			vCkt->printOutputs();
-			
-			cktState *gFinalSt = new cktState(gCkt, cnt*NUM_INPUT_COMBI + 2*idx);
-			cktState *vFinalSt = new cktState(vCkt, cnt*NUM_INPUT_COMBI + 2*idx);
-
-			string gInitStr0 = gInitSt->getState();
-			string vInitStr0 = vInitSt->getState();
-
-			string gFinalStr0 = gFinalSt->getState();
-			string vFinalStr0 = vFinalSt->getState();
+		gCktStrVec[idx+1] = gCkt->getCktState();
+		vCktStrVec[idx+1] = vCkt->getCktState();
 		
-			int_vec gList;
-			assert(gInitStr0.length() == gFinalStr0.length());
-			for (uint j = 0; j < gFinalStr0.length(); ++j) {
-				if (gInitStr0[j] != gFinalStr0[j])
-					gList.push_back(j);
-			}
+		//gCkt->printNextState();
 
-			cout << "gList: ";
-			printVec(gList);
+		//cout << "g: ";
+		//gCkt->printOutputs();
 
-			int_vec vList;
-			assert(vInitStr0.length() == vFinalStr0.length());
-			for (uint j = 0; j < vFinalStr0.length(); ++j) {
-				if (vInitStr0[j] != vFinalStr0[j])
-					vList.push_back(j);
-			}
+		//cout << endl << idx << endl;
+		
+		//cout << "v: ";
+		//vCkt->printOutputs();
+		//vCkt->printNextState();
 
-			cout << "vList: ";
-			printVec(vList);
-
-			/* Compute the list of toggled FFs in both 
-				gList = { ... }
-				vList = { ... }
-
-				for each element idx in gList
-					for each element jdx in vList
-						if dffArr[idx] = 0 && regArr[jdx] = 0
-							ffMap[idx][jdx] = 1
-							tmpDFF++
-
-				// Alt idea
-				for each element idx in gList
-					dffArr[idx]++
-					for each element jdx in vList
-							ffMap[idx][jdx]++
-
-				for each element jdx in vList
-					regArr[jdx]++
-			*/
-
-			for (int_vec_iter gt = gList.begin(); gt != gList.end(); ++gt) {
-				dffArr[*gt]++;
-				for (int_vec_iter vt = vList.begin(); vt != vList.end(); ++vt)
-					ffMapArr[*gt][*vt]++;
-			}
-
-			for (int_vec_iter vt = vList.begin(); vt != vList.end(); ++vt)
-				regArr[*vt]++;
-
-			/* Selection criteria for state
-				- if stateStr is unique, then push into vector 
-				- if any improvement in mapping was made
-			*/
-			gCktStateVec.push_back(gFinalSt);
-			vCktStateVec.push_back(vFinalSt);
-			
-						
-//			cout << endl;
-//
-//			// ALL ONES
-//			gInitSt = gCktStateVec[2*cnt+1];
-//			vInitSt = vCktStateVec[2*cnt+1];
-//
-//			cout << "Gate Level Simulation" << endl;
-//			gCkt->setCktState(*gInitSt);
-//			gCkt->simOneVector(vecIn);
-//			
-//			cout << "RTL Simulation" << endl;
-//			vCkt->setCktState(*vInitSt);
-//			vCkt->simOneVector(vecIn);
-//
-//			gCkt->printInputs();
-//			vCkt->printInputs();
-//
-//			gCkt->printCurrState();
-//			vCkt->printCurrState();
-//
-//			gCkt->printNextState();
-//			vCkt->printNextState();
-//
-//			gCkt->printOutputs();
-//			vCkt->printOutputs();
-//			
-//			gFinalSt = new cktState(gCkt, cnt*NUM_INPUT_COMBI + 2*idx+1);
-//			vFinalSt = new cktState(vCkt, cnt*NUM_INPUT_COMBI + 2*idx+1);
-//
-//			string gInitStr1 = gInitSt->getState();
-//			string vInitStr1 = vInitSt->getState();
-//
-//			string gFinalStr1 = gFinalSt->getState();
-//			string vFinalStr1 = vFinalSt->getState();
-//		
-//			gList.clear();
-//			assert(gInitStr1.length() == gFinalStr1.length());
-//			for (uint j = 0; j < gFinalStr1.length(); ++j) {
-//				if (gInitStr1[j] != gFinalStr1[j])
-//					gList.push_back(j);
-//			}
-//
-//			cout << "gList: ";
-//			printVec(gList);
-//
-//			vList.clear();
-//			assert(vInitStr1.length() == vFinalStr1.length());
-//			for (uint j = 0; j < vFinalStr0.length(); ++j) {
-//				if (vInitStr1[j] != vFinalStr1[j])
-//					vList.push_back(j);
-//			}
-//
-//			cout << "vList: ";
-//			printVec(vList);
-//			gCktStateVec.push_back(gFinalSt);
-//			vCktStateVec.push_back(vFinalSt);
-//
-//			cout << endl << gCktStateVec.size() << endl;
-		}
-
-		cout << " - - - - - - - Mapping - - - - - - - -" << endl;
-
-		for (int idx = 0; idx < numFFs; ++idx) {
-			bool _print = false;
-			for (int jdx = 0; jdx < NUM_STATE_BITS; ++jdx) {
-				if ((ffMapArr[idx][jdx] == regArr[jdx]) && 
-						(regArr[jdx] == dffArr[idx]) && (dffArr[idx])) {
-					if (_print)
-						cout << jdx << " ";
-					else {
-						cout << "FF " << idx << ": " << jdx << " ";
-						_print = true;
-					}
-				}
-						
-			}
-			if (_print)
-				cout << endl;
-		}
-		cout << endl << "Next init state" << endl << endl;
 	}
+	
+//	exit(-1);
+
+	// Data structure for mapping
+	int_vec regArr(NUM_STATE_BITS,0);
+	int_vec dffArr(numFFs,0);
+	vector<int_vec> ffMapArr(numFFs, regArr);
+	
+	#ifndef MAPPING_LIST_OFF
+	#if defined(__b10)
+	int ffMapping[] = {8, 0, 7, 5, 3, 2, 6, 4, 13, 12, 1};
+	#endif
+	#endif
+	for (int cnt = 0; cnt < numVec; ++cnt) {
+
+		string& gInitStr0 = gCktStrVec[cnt];
+		string& vInitStr0 = vCktStrVec[cnt];
+
+		string& gFinalStr0 = gCktStrVec[cnt+1];
+		string& vFinalStr0 = vCktStrVec[cnt+1];
+	
+		int_vec gList01, gList10, vMapList;	
+		int gParityI = 0, gParityF = 0;
+		assert(gInitStr0.length() == gFinalStr0.length());
+		for (uint j = 0; j < gFinalStr0.length(); ++j) {
+			if (gInitStr0[j] == '1')
+				++gParityI;
+			if (gFinalStr0[j] == '1')
+				++gParityF;
+			if (gInitStr0[j] != gFinalStr0[j]) { 
+				if (gFinalStr0[j] == '1')
+					gList01.push_back(j);
+				else
+					gList10.push_back(j);
+				#ifndef MAPPING_LIST_OFF
+				vMapList.push_back(ffMapping[j]);
+				#endif
+			}
+		}
+
+		cout << endl
+			 << cnt << endl
+			 << gParityI << " -> " << gParityF << endl
+			 << gInitStr0 << endl
+			 << gFinalStr0 << endl;
+
+		cout << "g01[" << gList01.size() << "]: ";
+		printVec(gList01);
+		cout << "g10[" << gList10.size() << "]: ";
+		printVec(gList10);
+
+		int_vec vList01, vList10;
+		int vParityI = 0, vParityF = 0;
+		assert(vInitStr0.length() == vFinalStr0.length());
+		for (uint j = 0; j < vFinalStr0.length(); ++j) {
+			if (vInitStr0[j] == '1')
+				++vParityI;
+			if (vFinalStr0[j] == '1')
+				++vParityF;
+			if (vInitStr0[j] != vFinalStr0[j]) {
+				if (vFinalStr0[j] == '1')
+					vList01.push_back(j);
+				else
+					vList10.push_back(j);
+			}
+		}
+
+		cout << endl
+			 << vParityI << " -> " << vParityF << endl
+			 << vInitStr0 << endl
+			 << vFinalStr0 << endl;
+
+		cout << "v01[" << vList01.size() << "]: ";
+		printVec(vList01);
+		cout << "v10[" << vList10.size() << "]: ";
+		printVec(vList10);
+
+//		assert (gParityI == vParityI);
+//		assert (gParityF == vParityF);
+
+		#ifndef MAPPING_LIST_OFF
+		cout << "mList[" << vMapList.size() << "]: ";
+		std::sort(vMapList.begin(), vMapList.end());
+		printVec(vMapList);
+		#endif
+
+		/* Compute the list of toggled FFs in both 
+			gList = { ... }
+			vList = { ... }
+
+			for each element idx in gList
+				for each element jdx in vList
+					if dffArr[idx] = 0 && regArr[jdx] = 0
+						ffMap[idx][jdx] = 1
+						tmpDFF++
+
+			// Alt idea
+			for each element idx in gList
+				dffArr[idx]++
+				for each element jdx in vList
+						ffMap[idx][jdx]++
+
+			for each element jdx in vList
+				regArr[jdx]++
+		*/
+
+//		for (int_vec_iter gt = gList.begin(); gt != gList.end(); ++gt) {
+//			dffArr[*gt]++;
+//			for (int_vec_iter vt = vList.begin(); vt != vList.end(); ++vt)
+//				ffMapArr[*gt][*vt]++;
+//		}
+//
+//		for (int_vec_iter vt = vList.begin(); vt != vList.end(); ++vt)
+//			regArr[*vt]++;
+	}
+	
+	cout << " - - - - - - - Mapping - - - - - - - -" << endl;
+
+	for (int idx = 0; idx < numFFs; ++idx) {
+		bool _print = false;
+//		cout << dffArr[idx] << ":= ";	
+		for (int jdx = 0; jdx < NUM_STATE_BITS; ++jdx) {
+//			cout << ffMapArr[idx][jdx] << "," << regArr[jdx] << " ";
+			if ((ffMapArr[idx][jdx] == regArr[jdx]) 
+					&& (regArr[jdx] == dffArr[idx]) 
+					/*&& (dffArr[idx])*/ ) {
+				if (_print)
+					cout << jdx << " ";
+				else {
+					cout << "FF " << idx << ": " << jdx << " ";
+					_print = true;
+				}
+			}
+		}
+		cout << endl;			
+//		if (_print)
+//			cout << endl;
+	}
+	#endif
+	
+	#ifndef MAPPING_LIST_OFF
+	char gOutName[80];
+	sprintf(gOutName, "%s.gout", gCktName);
+	
+	char vOutName[80];
+	sprintf(vOutName, "%s.vout", gCktName);
+	
+	ifstream gOutFile;
+	gOutFile.open(gOutName, ios::in);
+
+	if (gOutFile == NULL) {
+		cerr << "Unable to open " << gOutName << endl;
+		exit(-1);
+	}
+
+	ofstream vOutFile;
+	vOutFile.open(vOutName, ios::out);
+	
+	if (vOutFile == NULL) {
+		cerr << "Unable to open " << vOutName << endl;
+		exit(-1);
+	}
+	
+	#if defined(__b11)
+//	int regMapping[] = {1, 10, 5, 4, 7, 3, 6, 2, 0, -1, -1, -1, 9 ,8};
+	int regMapping[] = {2, 15, 9, 6, 12, 5, 11, 4, 1, -1, -1, -1, 14, 13};
+	#endif
+
+	#if defined(__b10)
+//	int regMapping[] = {1, 10, 5, 4, 7, 3, 6, 2, 0, -1, -1, -1, 9 ,8};
+	int regMapping[] = {2, 15, 9, 6, 12, 5, 11, 4, 1, -1, -1, -1, 14, 13};
+	#endif
+	while (gOutFile) {
+		string gStr;
+		getline(gOutFile, gStr);
+		if (gStr.length() == 0)
+			break;
+		//cout << gStr.length() << endl;
+		//assert(gStr.length() == gCkt->numFFs);
+
+		/* Convert to RTL level */
+		string vStr(NUM_STATE_BITS, '0');
+		for (int idx = 0; idx < NUM_STATE_BITS; ++idx) {
+			if (regMapping[idx] == -1)
+				vStr[idx] = 'X';
+			else
+				vStr[idx] = gStr[regMapping[idx]];
+		}
+		vOutFile << vStr << endl;
+	}
+	vOutFile.close();
+	gOutFile.close();
+	#endif
 	return 0;
 }
 
