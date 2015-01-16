@@ -33,6 +33,7 @@ bool PRINT_OUTPUT = false;
 bool PRINT_CURR_STATE = false;
 bool PRINT_NEXT_STATE = false;
 
+//#define EVTSIM_DIFF_ON
 #define EVTSIM_SCHED_ON
 //#define EVTSIM_PRINT_ON
 
@@ -352,9 +353,10 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 	#ifdef EVTSIM_SCHED_ON
 	vector<char> sched(numGates+1, 0);
 	#endif
-	
+
 	assert(dffList.size() == (uint)numFFs);
 	if (SET_CKT_STATE) {
+//		cout << "--1--" << endl;
 		for (uint i = 0; i < dffList.size(); ++i) {
 			int gate = dffList[i];
 			// Simulate all fanouts of FF
@@ -397,7 +399,9 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 	else {
 		for (uint i = 0; i < dffList.size(); ++i) {
 			int gate = dffList[i];
+			#ifdef EVTSIM_DIFF_ON
 			if (value[gate] != value[inList[gate][0]]) {
+			#endif
 				value[gate] = value[inList[gate][0]];
 				for(int j = 0; j < fanout[gate]; ++j) {
 					int fngate = outList[gate][j];
@@ -414,14 +418,18 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 				#ifdef EVTSIM_PRINT_ON
 				cout << "Scheduled fn[" << gate <<"]" << endl;
 				#endif
+			#ifdef EVTSIM_DIFF_ON
 			}
+			#endif
 		}
 	}	
 
 	// Schedule inputs
 	assert(vecIn.length() == (uint)numInputs);
 	for (int gate = 1; gate <= numInputs; ++gate) {
+		#ifdef EVTSIM_DIFF_ON
 		if (value[gate] != vecIn[gate-1]) {
+		#endif
 			value[gate] = vecIn[gate-1];
 			for(int j = 0; j < fanout[gate]; ++j) {
 				int fngate = outList[gate][j];
@@ -438,7 +446,10 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 			#ifdef EVTSIM_PRINT_ON
 			cout << "Scheduled fn[" << gate <<"]" << endl;
 			#endif
+
+		#ifdef EVTSIM_DIFF_ON
 		}
+		#endif
 	}
 
 	/*	Simulate the event wheel */
@@ -463,7 +474,10 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 			#ifdef EVTSIM_SCHED_ON
 			sched[*it] = 0;
 			#endif
+			
+			#ifdef EVTSIM_DIFF_ON
 			if (value[*it] != prev_value) {
+			#endif
 				for(int j = 0; j < fanout[*it]; ++j) {
 					int fngate = outList[*it][j];
 					int level = levelNum[fngate];
@@ -476,7 +490,9 @@ void gateLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 					levelEvents[level/5].push_back(fngate);
 					#endif
 				}
+			#ifdef EVTSIM_DIFF_ON
 			}
+			#endif
 		}
 		#ifdef EVTSIM_PRINT_ON
 		cout << endl;
@@ -745,6 +761,11 @@ void gateLevelCkt :: setCktState(const cktState& state) {
 	//cout << stateVal.length() << ": : " <<endl;
 	assert(stateVal.length() == (uint)numStateFFs);
 	
+//	for (int ffIdx = 0; ffIdx < dffList.size(); ++ffIdx) {
+//		int gate = dffList[ffIdx];
+//		value[gate] = '0';
+//	}
+
 	for (int ffIdx = 0; ffIdx < numStateFFs; ++ffIdx) {
 		int gate = stateFFList[ffIdx];
 		value[gate] = stateVal[ffIdx];

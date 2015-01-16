@@ -87,15 +87,11 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 //	cktVar->overflw = stateStr[4] - '0';
 }
 
-cktState :: cktState(const rtLevelCkt* ckt, int idx) {
-	
-	assert(ckt != NULL);
+string rtLevelCkt :: getCktState() const {
 
-	const Vtop* cktVar = ckt->getVeriObj();
 	assert(cktVar != NULL);
 
-	stateIdx = idx;
-	stateVal = std::string(ckt->numFFs, '0');
+	string stateVal = std::string(numFFs, '0');
 	int val = (uint)cktVar->v__DOT__process_1_stato;
 	
 //	cout << endl << "CktState (rtl)"
@@ -107,10 +103,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 		val = val >> 1;
 	}
 
-//	cout << stateVal << endl;
-//	stateVal[3] = (char) cktVar->outp + '0';
-//	stateVal[4] = (char) cktVar->overflw + '0';
-
+	return stateVal;
 }
 
 //void SimMultiCycle(Vtop* top, int NUM_CYCLES) {

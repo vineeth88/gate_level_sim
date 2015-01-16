@@ -1,0 +1,11 @@
+v_out <= {voto3, voto2, voto1, voto0} @ stato == 0100, rtr == 1
+
+cts <= 0	@ stato == 0000
+	<= rtr	@ stato == 0001
+	<= 1	@ stato == 0100, rtr == 1
+	<= 1	@ stato == RX_2_TX, rtr == 0
+	<= 1	@ stato == END_TX, rtr == 0
+
+ctr <= 0	@ stato == 0000
+	<= 1	@ stato == TX_2_RX, rts == 0
+	<= 1	@ stato == RECEIVE, rts == 1

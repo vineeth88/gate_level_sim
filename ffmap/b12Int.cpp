@@ -1,6 +1,7 @@
 #include "b12Int.h"
 #include <bitset>
 #include "rtLevelSim.h"
+#include <sstream>
 
 using namespace std;
 
@@ -53,8 +54,13 @@ void rtLevelCkt :: printNextState() {
 		cout << "-N/A-" << endl;
 		return;
 	}
-	cout << this->currState->getState()
-		 << endl;
+//	cout << this->currState->getState()
+//		 << endl;
+	string str = currState->getState();
+//	cout << str << endl;
+//	cout << str.substr(0,22) << " " 
+//		 << str.substr(22,64) << " " 
+//		 << str.substr(86) << endl;
 }
 
 inline
@@ -64,8 +70,9 @@ void rtLevelCkt :: printCurrState() {
 		cout << "-N/A-" << endl;
 		return;
 	}
-	cout << this->prevState->getState() 
-		 << endl;
+	//cout << 
+	this->prevState->getState();
+	//	 << endl;
 }
 
 void rtLevelCkt :: setCktState(const cktState& state) {
@@ -165,15 +172,73 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 	this->currState = new cktState(state);
 }
 
-cktState :: cktState(const rtLevelCkt* ckt, int idx) {
+string rtLevelCkt :: getCktState() const {
 	
-	assert(ckt != NULL);
-
-	const Vtop* cktVar = ckt->getVeriObj();
 	assert(cktVar != NULL);
+	
+	#ifdef B12_PRINT_STATE_VAL
+	cout << endl
+		<< (uint) cktVar->v__DOT__wr 		<< " "					
+		<< (uint) cktVar->v__DOT__address	<< " "
+		<< (uint) cktVar->v__DOT__data_in	<< " "
+		<< (uint) cktVar->v__DOT__data_out	<< " "
+		<< (uint) cktVar->v__DOT__num		<< " "
+		<< (uint) cktVar->v__DOT__sound	<< " "	
+		<< (uint) cktVar->v__DOT__play		<< " "
+		<< (uint) cktVar->v__DOT__s		<< " "	
+		<< (uint) cktVar->v__DOT__counter	<< " "
+		<< (uint) cktVar->v__DOT__count	<< " ";
+	cout << "[ ";
+	for (int __Vi0=0; __Vi0<32; ++__Vi0) {
+		cout << (uint) cktVar->v__DOT__memory[__Vi0] << " ";
+    }
+	cout << "] ";// << endl;
+	// [.. - 22] + [86 - ..]
+	cout 
+		<< (uint) cktVar->v__DOT__gamma 	<< " "		
+		<< (uint) cktVar->v__DOT__ind 		<< " "
+		<< (uint) cktVar->v__DOT__scan		<< " "
+		<< (uint) cktVar->v__DOT__max		<< " "
+		<< (uint) cktVar->v__DOT__timebase	<< " "
+		<< (uint) cktVar->v__DOT__count2	<< " "
+		<< endl;
+	#endif
 
-	stateIdx = idx;
-	stateVal = std::string(ckt->numFFs, '0');
+	#ifdef B12_PRINT_STATE_STRING
+	stringstream ss;
+	ss
+		<< (bitset<1>)	cktVar->v__DOT__wr 		
+		<< (bitset<5>)	cktVar->v__DOT__address	
+		<< (bitset<2>)	cktVar->v__DOT__data_in	
+		<< (bitset<2>)	cktVar->v__DOT__data_out	
+		<< (bitset<2>)	cktVar->v__DOT__num		
+		<< (bitset<3>)	cktVar->v__DOT__sound		
+		<< (bitset<1>)	cktVar->v__DOT__play		
+		<< (bitset<1>)	cktVar->v__DOT__s			
+		<< (bitset<3>)	cktVar->v__DOT__counter	
+		<< (bitset<2>)	cktVar->v__DOT__count;
+	
+//	ss << " ";
+
+	// 22	 
+	for (int __Vi0=0; __Vi0<32; ++__Vi0) {
+		ss << (bitset<2>) cktVar->v__DOT__memory[__Vi0];
+    }
+	// 86
+	ss //<< " "
+		<< (bitset<5>)	cktVar->v__DOT__gamma 	
+		<< (bitset<2>)	cktVar->v__DOT__ind 		
+		<< (bitset<5>)	cktVar->v__DOT__scan		
+		<< (bitset<5>)	cktVar->v__DOT__max		
+		<< (bitset<6>)	cktVar->v__DOT__timebase 
+		<< (bitset<6>)	cktVar->v__DOT__count2;
+	
+	string state_val;
+	ss >> state_val;
+//	cout << endl;
+	#endif
+
+	string stateVal = std::string(numFFs, '0');
 	
 //	cout << endl << "CktState (rtl)"
 //		 << endl << val << endl;
@@ -220,10 +285,10 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	}
 
 //	i = 15;
-	stateVal[i] = (cktVar->v__DOT__play & 0x1) + '0';
+	stateVal[15] = (cktVar->v__DOT__play & 0x1) + '0';
 
 //	i = 16;
-	stateVal[i] = (cktVar->v__DOT__s & 0x1) + '0';
+	stateVal[16] = (cktVar->v__DOT__s & 0x1) + '0';
 
 	i = 19;
 	val = (uint)(cktVar->v__DOT__counter & 0x7);
@@ -290,7 +355,7 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	}
 
 	for (int j = 0; j < 32; ++j) {
-		i = 21 + j*2;
+		i = 23 + j*2;
 		val = (uint)(cktVar->v__DOT__memory[j] & 0x3);
 		while (val) {
 			stateVal[i] = (val & 0x1) + '0';
@@ -298,6 +363,13 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 			val = val >> 1;
 		}
 	}
+	
+	#ifdef B12_PRINT_STATE_STRING
+	cout << state_val << endl
+		 << stateVal << endl;
+	#endif
+
+	return stateVal;
 }
 
 //void state_t::printState (bool full_) {
@@ -361,28 +433,28 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 //
 //void printCktState (Vtop* top) {
 //	cout
-//		<< (uint) top->v__DOT__wr 		<< " "					
-//		<< (uint) top->v__DOT__address	<< " "
-//		<< (uint) top->v__DOT__data_in	<< " "
-//		<< (uint) top->v__DOT__data_out	<< " "
-//		<< (uint) top->v__DOT__num		<< " "
-//		<< (uint) top->v__DOT__sound	<< " "	
-//		<< (uint) top->v__DOT__play		<< " "
-//		<< (uint) top->v__DOT__s		<< " "	
-//		<< (uint) top->v__DOT__counter	<< " "
-//		<< (uint) top->v__DOT__count	<< " "
-//	// [.. - 22] + [86 - ..]
-//		<< (uint) top->v__DOT__gamma 	<< " "		
-//		<< (uint) top->v__DOT__ind 		<< " "
-//		<< (uint) top->v__DOT__scan		<< " "
-//		<< (uint) top->v__DOT__max		<< " "
-//		<< (uint) top->v__DOT__timebase	<< " "
-//		<< (uint) top->v__DOT__count2	<< " "
-//		<< endl;
+//		<< (uint) cktVar->v__DOT__wr 		<< " "					
+//		<< (uint) cktVar->v__DOT__address	<< " "
+//		<< (uint) cktVar->v__DOT__data_in	<< " "
+//		<< (uint) cktVar->v__DOT__data_out	<< " "
+//		<< (uint) cktVar->v__DOT__num		<< " "
+//		<< (uint) cktVar->v__DOT__sound	<< " "	
+//		<< (uint) cktVar->v__DOT__play		<< " "
+//		<< (uint) cktVar->v__DOT__s		<< " "	
+//		<< (uint) cktVar->v__DOT__counter	<< " "
+//		<< (uint) cktVar->v__DOT__count	<< " "
 //	cout << "[ ";
 //	for (int __Vi0=0; __Vi0<32; ++__Vi0) {
-//		cout << (uint) top->v__DOT__memory[__Vi0] << " ";
+//		cout << (uint) cktVar->v__DOT__memory[__Vi0] << " ";
 //    }
-//	cout << "]" << endl;
+//	cout << "] ";// << endl;
+//	// [.. - 22] + [86 - ..]
+//		<< (uint) cktVar->v__DOT__gamma 	<< " "		
+//		<< (uint) cktVar->v__DOT__ind 		<< " "
+//		<< (uint) cktVar->v__DOT__scan		<< " "
+//		<< (uint) cktVar->v__DOT__max		<< " "
+//		<< (uint) cktVar->v__DOT__timebase	<< " "
+//		<< (uint) cktVar->v__DOT__count2	<< " "
+//		<< endl;
 //	
 //}

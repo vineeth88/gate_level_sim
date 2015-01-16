@@ -1,6 +1,7 @@
 #include "b11Int.h"
 #include <bitset>
 #include "rtLevelSim.h"
+#include <sstream>
 
 using namespace std;
 
@@ -51,6 +52,20 @@ void rtLevelCkt :: printNextState() {
 	}
 	cout << this->currState->getState()
 		 << endl;
+
+	#ifdef B11_PRINT_STATE_STRING
+	stringstream ss;
+   	ss 	<< (bitset<6>) cktVar->v__DOT__r_in
+   	 	<< (bitset<4>) cktVar->v__DOT__stato
+    	<< (bitset<5>) cktVar->v__DOT__cont
+    	<< (bitset<9>) cktVar->v__DOT__cont1;
+
+	string state_val;
+	ss >> state_val;
+
+	cout << state_val << endl;
+	#endif
+
 }
 
 inline
@@ -81,11 +96,11 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 						val = 0;
 						break;
 
-			case 16 :	cktVar->v__DOT__cont = val;
+			case 15 :	cktVar->v__DOT__cont = val;
 						val = 0;
 						break;
 
-			case 48 :	cktVar->v__DOT__cont1 = val;
+			case 24 :	cktVar->v__DOT__cont1 = val;
 						val = 0;
 						break;
 
@@ -99,18 +114,41 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 	this->currState = new cktState(state);
 }
 
-cktState :: cktState(const rtLevelCkt* ckt, int idx) {
-	
-	assert(ckt != NULL);
+#define B11_PRINT_STATE_VAL 0
+#define B11_PRINT_STATE_STRING 0
 
-	const Vtop* cktVar = ckt->getVeriObj();
+string rtLevelCkt :: getCktState() const {
+	
 	assert(cktVar != NULL);
 
-	stateIdx = idx;
-	stateVal = std::string(ckt->numFFs, '0');
+	string stateVal = std::string(numFFs, '0');
 	
 //	cout << endl << "CktState (rtl)"
 //		 << endl << val << endl;
+
+	#ifdef B11_PRINT_STATE_VAL
+	int cont1 = (int) cktVar->v__DOT__cont1 & 0x1ff;
+	if (cont1 > 0xff)
+		cont1 -= 512;
+	
+   	cout << (uint) cktVar->v__DOT__r_in  << "\t"
+   	 	 << (uint) cktVar->v__DOT__stato << "\t"
+    	 << (uint) cktVar->v__DOT__cont  << "\t"
+    	 << cont1 
+		 << endl;
+	#endif
+
+	#ifdef B11_PRINT_STATE_STRING
+	stringstream ss;
+   	ss 	<< (bitset<6>) cktVar->v__DOT__r_in
+   	 	<< (bitset<4>) cktVar->v__DOT__stato
+    	<< (bitset<5>) cktVar->v__DOT__cont
+    	<< (bitset<9>) cktVar->v__DOT__cont1;
+
+	string state_val;
+	ss >> state_val;
+	#endif
+
 	int i = 5;
 	int val = (uint)(cktVar->v__DOT__r_in & 0x3f);
 	while (val) {
@@ -127,21 +165,31 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 		val = val >> 1;
 	}
 
-	i = 15;
-	val = (uint)(cktVar->v__DOT__stato & 0x3f);
+	i = 14;
+	val = (uint)(cktVar->v__DOT__cont & 0x1f);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
 		val = val >> 1;
 	}
 
-	i = 47;
-	val = (uint)(cktVar->v__DOT__stato);
-	while (val) {
+	i = 23;
+	val = (int)(cktVar->v__DOT__cont1);
+//	if (val > 0xff)
+//		val -= 512;
+
+	while (i>14) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
 		val = val >> 1;
 	}
+	
+	#ifdef B11_PRINT_STATE_STRING
+	cout << state_val << endl
+		 << stateVal << endl
+		 << endl;
+	#endif
+	return stateVal;
 }
 
 //void setAllXState(Vtop* top) {

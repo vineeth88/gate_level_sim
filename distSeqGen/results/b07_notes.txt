@@ -1,0 +1,5 @@
+Methodology
+-> vec 4 + vec 5 concatenated	=> 962 faults
+-> Target fault 193 			=> 967 faults
+-> Target fault 645 (blocked)	=> 969 faults 
+-> Target fault 988 (blocked)	=> 974 faults 

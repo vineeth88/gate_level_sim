@@ -18,7 +18,7 @@ void set_input(Vtop *top, const vecIn_t& input) {
 	for(uint i = 0; i < 4; ++i) {
 		top->v_in = ((top->v_in << 1) | ((input[7+i] - '0')& 1));
 	}
-	top->reset = ((input[2] - 48) & 1) ^ 1;
+	top->reset = ((input[11] - 48) & 1) ^ 1;
 }
 
 void set_input(Vtop *top, const int_vec& input) {
@@ -35,7 +35,7 @@ void set_input(Vtop *top, const int_vec& input) {
 	for(uint i = 0; i < 4; ++i) {
 		top->v_in = ((top->v_in << 1) | (input[7+i] & 1));
 	}
-	top->reset = (input[2] & 1) ^ 1;
+	top->reset = (input[11] & 1) ^ 1;
 }
 
 inline
@@ -137,22 +137,17 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 	this->currState = new cktState(state);
 }
 
-cktState :: cktState(const rtLevelCkt* ckt, int idx) {
+string rtLevelCkt :: getCktState() const {
 	
-	assert(ckt != NULL);
-
-	const Vtop* cktVar = ckt->getVeriObj();
 	assert(cktVar != NULL);
 
-	stateIdx = idx;
-	stateVal = std::string(ckt->numFFs, '0');
+	string stateVal = std::string(numFFs, '0');
 	
 //	cout << endl << "CktState (rtl)"
 //		 << endl << val << endl;
 	
 	int i = 3;
-	
-	int val = (uint)cktVar->v__DOT__stato;
+	int val = (uint)(cktVar->v__DOT__stato & 0xf);
 	while (val) {
 		stateVal[i] = (val & 0x1) + '0';
 		i--;
@@ -174,7 +169,46 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 	stateVal[12] = (cktVar->v__DOT__last_g & 0x1) + '0';
 	stateVal[13] = (cktVar->v__DOT__last_r & 0x1) + '0';
 
+	return stateVal;
 }
+
+//cktState :: cktState(const rtLevelCkt* ckt, int idx) {
+//	
+//	assert(ckt != NULL);
+//
+//	const Vtop* cktVar = ckt->getVeriObj();
+//	assert(cktVar != NULL);
+//
+//	stateIdx = idx;
+//	stateVal = std::string(ckt->numFFs, '0');
+//	
+////	cout << endl << "CktState (rtl)"
+////		 << endl << val << endl;
+//	
+//	int i = 3;
+//	int val = (uint)(cktVar->v__DOT__stato & 0xf);
+//	while (val) {
+//		stateVal[i] = (val & 0x1) + '0';
+//		i--;
+//		val = val >> 1;
+//	}
+//	
+//	stateVal[4] = (cktVar->v__DOT__voto0 & 0x1) + '0';
+//	stateVal[5] = (cktVar->v__DOT__voto1 & 0x1) + '0';
+//	stateVal[6] = (cktVar->v__DOT__voto2 & 0x1) + '0';
+//	stateVal[7] = (cktVar->v__DOT__voto3 & 0x1) + '0';
+//	
+//	i = 11; 
+//	val = (uint)(cktVar->v__DOT__sign & 0xf);
+//	while (val) {
+//		stateVal[i] = (val & 0x1) + '0';
+//		i--;
+//		val = val >> 1;
+//	}
+//	stateVal[12] = (cktVar->v__DOT__last_g & 0x1) + '0';
+//	stateVal[13] = (cktVar->v__DOT__last_r & 0x1) + '0';
+//
+//}
 
 //void setAllXState(Vtop* top) {
 //
