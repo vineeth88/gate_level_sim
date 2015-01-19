@@ -21,6 +21,8 @@ void rtLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 	assert (vecIn.length() == (uint)numInputs);
 	assert (cktVar != NULL);
 
+	clearBranchCounters();
+
     while ((main_time < 2) && !Verilated::gotFinish()) {
     	if (cktVar->clock == 0)
             set_input(cktVar, vecIn);
@@ -70,3 +72,20 @@ cktState :: cktState(const rtLevelCkt* ckt, int idx) {
 
 }
 
+void rtLevelCkt :: clearBranchCounters() {
+	assert(cktVar != NULL);
+
+	for(int br = 0; br < NUM_BRANCH; ++br) {
+		(cktVar->__VlSymsp)->__Vcoverage[br] = 0;
+	}
+}
+
+void rtLevelCkt :: getBranchCounters(vector<int>& branch_vec) {
+	assert(cktVar != NULL);
+
+	branch_vec.clear();
+	for(int br = 0; br < NUM_BRANCH; ++br) {
+		if ((cktVar->__VlSymsp)->__Vcoverage[br])
+			branch_vec.push_back(br);
+	}
+}

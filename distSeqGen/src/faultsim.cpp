@@ -218,6 +218,7 @@ class gateLevelCkt
 char vector[5120];
 gateLevelCkt *circuit;
 int OUTPUT_DET, NO_FAULTDROP, OBSERVE, INIT0;
+int GEN_FSIG;
 int SCANID;
 int vecNum=0;
 int numTieNodes;
@@ -442,6 +443,8 @@ main(int argc, char *argv[])
 				case 'i':
 					INIT0 = 1;
 					break;
+				case 'f':
+					GEN_FSIG = 1;
 				default:
 					fprintf(stderr, "Invalid option: %s\n", argv[1]);
 					fprintf(stderr, "Usage: %s [-dnio] <ckt> <type>\n", argv[0]);
@@ -462,6 +465,7 @@ main(int argc, char *argv[])
 		NO_FAULTDROP = 0;
 		OBSERVE = 0;
 		INIT0 = 0;
+		GEN_FSIG = 0;
 	}
 
 	strcpy(cktName, argv[nameIndex]);
@@ -2375,21 +2379,23 @@ void gateLevelCkt::printGoodSig(FILE *sigFile, int v)
 		}
 		fprintf(sigFile, "\n");
 	}
-
-	fprintf(ffSigFile, "vec %d: ", v);
-	ffStateStr = std::string(numff, '0');
-	for (i=0; i<numff; i++) {
-		if (value1[ff_list[i]] && value2[ff_list[i]])
-			ffStateStr[i] = '1';
-//			fprintf(ffSigFile, "1");
-		else if ((value1[ff_list[i]] == 0) && (value2[ff_list[i]] == 0))
-			ffStateStr[i] = '0';
-//			fprintf(ffSigFile, "0");
-		else
-			ffStateStr[i] = 'X';
-//			fprintf(ffSigFile, "X");
-	}	 
-	fprintf(ffSigFile, "%s\n", ffStateStr.c_str());
+	
+	if (GEN_FSIG) {
+		fprintf(ffSigFile, "vec %d: ", v);
+		ffStateStr = std::string(numff, '0');
+		for (i=0; i<numff; i++) {
+			if (value1[ff_list[i]] && value2[ff_list[i]])
+				ffStateStr[i] = '1';
+	//			fprintf(ffSigFile, "1");
+			else if ((value1[ff_list[i]] == 0) && (value2[ff_list[i]] == 0))
+				ffStateStr[i] = '0';
+	//			fprintf(ffSigFile, "0");
+			else
+				ffStateStr[i] = 'X';
+	//			fprintf(ffSigFile, "X");
+		}	 
+		fprintf(ffSigFile, "%s\n", ffStateStr.c_str());
+	}
 }
 
 void gateLevelCkt::printSig(FILE *sigFile)
@@ -2432,7 +2438,8 @@ void gateLevelCkt::printSig(FILE *sigFile)
 			}	// if (fstatus...)
 		}
 
-		if (fstatus[fIndices[j]] == EXCITED_1_LEVEL) {
+		if ((fstatus[fIndices[j]] == EXCITED_1_LEVEL) 
+				&& (GEN_FSIG)) {
 
 			string fvStateStr(numff, '0');
 

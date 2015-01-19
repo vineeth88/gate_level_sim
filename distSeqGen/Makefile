@@ -1,4 +1,4 @@
-BENCH = b12
+BENCH = b11
 DEFINE_BENCH = -D__${BENCH}
 BENCH_DIR = ./lib/${BENCH}
 LIBS =  ${BENCH_DIR}/cpp/Vtop__ALL.a
@@ -14,7 +14,7 @@ SRC_DIR = ./src
 EXEC_DIR = ./exec
 INCLUDE = -I$(SYSTEMPERL) -I$(VERILATOR_INCLUDE) -I$(INCL_DIR)
 
-DEBUG = -g -pg -O0
+DEBUG = -g -pg -O0 -DOnlySimulate
 CFLAGS += ${DEBUG}
 
 all: gen
@@ -34,6 +34,9 @@ gateLevelSim.o \
 trace.o \
 verilated.o SpCoverage.o
 TARGET_TRACE = ${BENCH}trace
+
+sim: $(OBJS_GEN)
+	$(CXX) $(OBJS_GEN) $(INCLUDE) $(LIBS) -o $(EXEC_DIR)/${BENCH}Sim -pg -lm -lstdc++ 2>&1 | c++filt
 
 gen: $(OBJS_GEN)
 	$(CXX) $(OBJS_GEN) $(INCLUDE) $(LIBS) -o $(EXEC_DIR)/$(TARGET_GEN) -pg -lm -lstdc++ 2>&1 | c++filt
@@ -68,7 +71,10 @@ SpCoverage.o:
 	$(CXX) $(CFLAGS) -I. -MMD $(INCLUDE) -DVL_PRINTF=printf -DVM_TRACE=0 -DVM_COVERAGE=0       -DVL_DEBUG=1  -c -o SpCoverage.o ${SYSTEMPERL}/SpCoverage.cpp
 
 procSig:
-	$(CXX) -g -I./include -o $(EXEC_DIR)/sigFileProc $(SRC_DIR)/procSigFile.cpp
+	$(CXX) -g -I./include -DPROC_SIG_FILE -o $(EXEC_DIR)/sigFileProc $(SRC_DIR)/procSigFile.cpp
+
+procOutput:
+	$(CXX) -g -I./include -DPROC_OUTPUT_FILE -o $(EXEC_DIR)/outFileProc $(SRC_DIR)/procSigFile.cpp
 
 fsimNew:
 	$(CXX) -g -o $(EXEC_DIR)/fsimNew $(SRC_DIR)/faultsim.cpp

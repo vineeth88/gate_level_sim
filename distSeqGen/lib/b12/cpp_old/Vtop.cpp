@@ -875,7 +875,7 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 			    ++(vlSymsp->__Vcoverage[97]);
 			    vlTOPp->v__DOT__count2 = 8;
 			    vlTOPp->v__DOT__gamma = 0x19;
-			    vlTOPp->nl = 0xf;
+			    vlTOPp->nl = 1;
 			    vlTOPp->v__DOT__play = 0;
 			} else {
 			    vlTOPp->v__DOT__count2 
