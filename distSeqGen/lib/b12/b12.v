@@ -46,8 +46,8 @@ module b12(
    parameter YELLOW = 2;
    parameter BLUE = 3;
 
-   parameter LED_ON = 1;
-   parameter LED_OFF = 0;
+   parameter LED_ON = 1'b1;
+   parameter LED_OFF = 1'b0;
 
    parameter PLAY_ON = 1;
    parameter PLAY_OFF = 0;
@@ -279,7 +279,7 @@ module b12(
 	    if (reset)
 	      begin
 		     nloss <= LED_OFF;
-		     nl <=  LED_OFF;
+		     nl <=  {4{LED_OFF}};
 		     play <= PLAY_OFF;
 		     wr <= 0;
 		     scan = 0;
@@ -309,7 +309,7 @@ module b12(
 			   `G1: // set to zero
 			     begin
 				    nloss <= LED_OFF;
-				    nl <= LED_OFF;
+				    nl <= {4{LED_OFF}};
 				    play <= PLAY_OFF;
 				    wr <= 0;
 				    max = 0;
@@ -352,7 +352,7 @@ module b12(
 			     begin
 				    if (count2 == 0)
 				      begin
-					     nl <= LED_OFF;
+					     nl <= {4{LED_OFF}};
 					     play <= PLAY_OFF;
 					     count2 = timebase;
 					     gamma = `G7;
@@ -484,7 +484,7 @@ module b12(
 			     begin
 				    if (count2 == 0)
 				      begin
-					     nl <= LED_OFF;
+					     nl <= {4{LED_OFF}};
 					     play <= PLAY_OFF;
 					     count2 = timebase;
 					     gamma = `G12;
@@ -536,7 +536,7 @@ module b12(
 			     begin
 				    if (count2 == 0)
 				      begin
-					     nl <= LED_OFF;
+					     nl <= {4{LED_OFF}};
 					     play <= PLAY_OFF;
 					     count2 = timebase;
 					     gamma = `E1;
@@ -587,7 +587,7 @@ module b12(
 			     begin
 				    if (count2 == 0)
 				      begin
-					     nl <= LED_OFF;
+					     nl <= {4{LED_OFF}};
 					     play <= PLAY_OFF;
 					     count2 = timebase;
 					     gamma = `K4;
@@ -628,7 +628,7 @@ module b12(
 			     begin
 				    if (count2==0)
 				      begin
-					     nl <= LED_OFF;
+					     nl <= {4{LED_OFF}};
 					     play <= PLAY_OFF;
 					     count2 = COUNT_FIN;
 					     gamma = `K6;
@@ -661,7 +661,7 @@ module b12(
 			     begin
 				    if (count2==0)
 				      begin
-					     nl <= LED_ON;
+					     nl <= {4{LED_ON}};
 					     play <= PLAY_OFF;
 					     count2 = COUNT_FIN;
 					     gamma = `W1;
@@ -677,7 +677,7 @@ module b12(
 			     begin
 				    if (count2==0)
 				      begin
-					     nl <= LED_OFF;
+					     nl <= {4{LED_OFF}};
 					     play <= PLAY_ON;
 					     sound <= `S_WIN;
 					     count2 = COUNT_FIN;

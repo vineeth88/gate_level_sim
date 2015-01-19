@@ -30,8 +30,8 @@
 30 counter_2_
 31 counter_1_
 32 counter_0_
-33 count_1_
-34 count_0_
+33 count_1_1
+34 count_0_1
 35 memory_63_
 36 memory_62_
 37 memory_61_
@@ -123,8 +123,8 @@
 123 count_4_
 124 count_3_
 125 count_2_
-126 count_1_1
-127 count_0_1
+126 count_1_
+127 count_0_
 128 nloss_$OUTPUT
 129 nl_3__$OUTPUT
 130 nl_2__$OUTPUT

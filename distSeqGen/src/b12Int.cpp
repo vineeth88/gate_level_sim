@@ -139,7 +139,7 @@ void rtLevelCkt :: setCktState(const cktState& state) {
 		val = ((val << 1) | ((stateStr[22+i] - '0') & 0x1));
 		
 		if (i%2) {
-			cktVar->v__DOT__memory[i/2] = val;
+			cktVar->v__DOT__memory[31-i/2] = val;
 			val = 0;
 		}
 	}
@@ -338,7 +338,7 @@ string rtLevelCkt :: getCktState() const {
 
 	for (int j = 0; j < 32; ++j) {
 		i = 23 + j*2;
-		val = (uint)(cktVar->v__DOT__memory[j] & 0x3);
+		val = (uint)(cktVar->v__DOT__memory[31-j] & 0x3);
 		while (val) {
 			stateVal[i] = (val & 0x1) + '0';
 			i--;

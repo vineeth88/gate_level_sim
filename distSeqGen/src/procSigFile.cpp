@@ -7,9 +7,10 @@ using namespace std;
 typedef map<string, int> stateHTable_t;
 
 void genDetectedFaultsMap (char[], vector<char>&);
-void procSig2 (char[], const vector<char>&, const stateHTable_t&); 
-void procSig1 (char[], const vector<char>&, const stateHTable_t&);
+//void procSig2 (char[], const vector<char>&, const stateHTable_t&); 
+void procSig1 (char[], const vector<char>&);
 void genHTableSig (char[], const vector<char>&, stateHTable_t&);
+void computeFaultDetVectors(char[]);
 
 //struct sigPair_t {
 //	int vecNo;
@@ -36,16 +37,23 @@ int main(int argc, char** argv) {
 	char cktName[256];
 	sprintf(cktName, "%s", argv[1]);
 	
+	#ifdef PROC_SIG_FILE
+	stateHTable_t stateTable;
 	vector<char> detFaultMap;
 	genDetectedFaultsMap(cktName, detFaultMap);
-	genHTableSig(cktName, detFaultMap);
+	genHTableSig(cktName, detFaultMap, stateTable);
 //	procSig2(cktName, detFaultMap);
-//	procSig1(cktName, detFaultMap);
+	procSig1(cktName, detFaultMap);
+	#endif
+	
+	#ifdef PROC_OUTPUT_FILE
+	computeFaultDetVectors(cktName);
+	#endif
 	return 0;
 	
 }
 
-void genHTableSig (char cktName[], const vector<char>& detFaultMap) {
+void genHTableSig (char cktName[], const vector<char>& detFaultMap, stateHTable_t& stateTable) {
 	
 	char ffSigName[256];
 	sprintf(ffSigName, "%s.fsig", cktName);
@@ -56,14 +64,22 @@ void genHTableSig (char cktName[], const vector<char>& detFaultMap) {
 		exit(-1);
 	}
 
-	typedef pair<stateHTable_t::iterator, bool> retVal_t;
-
-	stateHTable_t stateTable;
+	typedef pair<int, int> sigPair_t;
+	typedef map<int, vector<sigPair_t> > vecMap_t;
+	typedef vecMap_t::iterator vecMap_iter;
+	typedef pair< stateHTable_t::iterator, bool> retVal_t;
+	typedef pair< vecMap_iter, bool> retPair_t;
+	typedef map<int, vector<int> > faultPropIndex_t;
+	typedef faultPropIndex_t::iterator propIndex_iter;
+//	stateHTable_t stateTable;
+	vecMap_t faultSigMap;
 	string ffStr;
 	int Unique_State_ID = 0;
 	int vecNo = 0;
 	
 	vector<int> ffSigVec;
+	faultPropIndex_t pIndices;
+
 	while(ffSigFile) {
 		string line;
 		getline(ffSigFile, line);
@@ -109,47 +125,140 @@ void genHTableSig (char cktName[], const vector<char>& detFaultMap) {
 
 			retVal_t ret;
 			ret = stateTable.insert(make_pair(sig, Unique_State_ID));
+			int sigIndex = 0;
 			if(ret.second) {
+				sigIndex = Unique_State_ID;
 				++Unique_State_ID;
 			}
+			else {
+				sigIndex = ret.first->second;
+			}
 
-//			sigPair_t currPair = make_pair(vecNo, sig);
-//			vecMap_iter mapIt = faultSigMap.find(faultNo);
-//			if (mapIt == faultSigMap.end()) {
-//				vector<sigPair_t> tmpVec;
-//				tmpVec.push_back(currPair);
-//				retPair_t ret = faultSigMap.insert(make_pair(faultNo, tmpVec));
-//				if (ret.second == false)
-//					cout << "Unable to add V:" << vecNo 
-//						 << "@ F: " << faultNo << endl;
+			vecMap_iter mapIt = faultSigMap.find(faultNo);
+			sigPair_t currPair = make_pair(vecNo, sigIndex);
+			if (mapIt == faultSigMap.end()) {
+				vector<sigPair_t> tmpVec;
+				tmpVec.push_back(currPair);
+				tmpVec.push_back(currPair);
+				retPair_t ret = faultSigMap.insert(make_pair(faultNo, tmpVec));
+				if (ret.second == false)
+					cout << "Unable to add V:" << vecNo 
+						 << "@ F: " << faultNo << endl;
+			}
+			else {
+				vector<sigPair_t>& refVec = mapIt->second;
+				if(refVec.size() && (refVec.back().first == vecNo-1))
+					mapIt->second.back() = currPair; 
+				else {
+					if (refVec.size() && 
+					(refVec.back().first == refVec[refVec.size()-2].first)) {
+					// Same index repeated twice
+						mapIt->second.back() = currPair;
+					}
+					else
+						mapIt->second.push_back(currPair);
+					mapIt->second.push_back(currPair);
+				}
+			}
+
+//			propIndex_iter propIt = pIndices.find(faultNo);
+//			if (propIt == pIndices.end()) {
+//				vector<int> tmpVec;
+//				tmpVec.push_back(vecNo);
+//				pIndices.insert(make_pair(faultNo, tmpVec));
 //			}
 //			else {
-//				mapIt->second.push_back(currPair);
+//				if(propIt->second.size() &&
+//						(propIt->second.back() == vecNo-1))
+//					propIt->second.back() = vecNo;
+//				else {
+//					propIt->second.push_back(vecNo);
+//					propIt->second.push_back(vecNo);
+//				}
 //			}
 		}
 	}
 
 	ffSigFile.close();
-
+	
+	vector<int> stateInd2ID(stateTable.size(), -1);
 	ofstream stateFile;
 	char stateName[256];
 	sprintf(stateName, "%s.ustb", cktName);
 	stateFile.open(stateName, ios::out);
 	if(stateFile == NULL) {	
 		cout << "Unable to write into " << stateName << endl;
+		cout << stateTable.size() << endl;
+		int idx = 0;
 		for(stateHTable_t::iterator it = stateTable.begin(); 
-				it != stateTable.end(); ++it)
-			cout << it->first << " " << it->second << endl;
+				it != stateTable.end(); ++it) {
+//			cout << it->first << " " << it->second << endl;
+			stateInd2ID[it->second] = idx;
+			cout << it->first << endl;
+			++idx;
+		}
 	}
 	else {
+		stateFile << stateTable.size() << endl;
+		int idx = 0;
 		for(stateHTable_t::iterator it = stateTable.begin(); 
-				it != stateTable.end(); ++it)
-			stateFile << it->first << " " << it->second << endl;
+				it != stateTable.end(); ++it) {
+//			stateFile << it->first << " " << it->second << endl;
+			stateInd2ID[it->second] = idx;
+			stateFile << it->first << endl;
+			++idx;
+		}
 	}
-	
+	stateFile.close();
+
 	cout << endl
 		 << stateTable.size() << " Unique states" << endl;
 	assert(stateTable.size() == Unique_State_ID);
+	
+	sprintf(stateName, "%s.states", cktName);
+	stateFile.open(stateName, ios::out);
+	if(stateFile == NULL) {	
+		cout << "Unable to write into " << stateName << endl;
+	}
+	cout << faultSigMap.size() << " faults" << endl;
+	for(vecMap_iter it = faultSigMap.begin(); it != faultSigMap.end(); ++it) {
+//		cout << "Fault " << it->first << endl;
+		for(vector<sigPair_t>::iterator st = it->second.begin(); 
+				st != it->second.end(); ++st) {
+			#ifdef REPRESENT_AS_D
+			string ffStr = ffSigVec[st->first];
+			string fvStr = st->second;
+			for (int l = 0; l < fvStr.length(); ++l) {
+				if (fvStr[l] == ffStr[l])
+					cout << ffStr[l];
+				else if ((fvStr[l] == '0') && (ffStr[l] == '1'))
+					cout << "d";
+				else
+					cout << "b";
+			}
+			#endif
+			if (stateFile == NULL) {
+				cout //<< " (" 
+					<< stateInd2ID[ffSigVec[st->first]] 
+					<< ", " << stateInd2ID[st->second]
+					<< ", " << it->first 
+					<< " " << st->first //<< ") " 
+					<< endl;
+			}
+			else {
+				stateFile
+					<< stateInd2ID[ffSigVec[st->first]] 
+					<< " " << stateInd2ID[st->second]
+					<< " " << it->first << " " << st->first << " ;"//<< ") " 
+					<< endl;
+			}
+		}
+		if (stateFile)
+			stateFile << endl;
+		else
+			cout << endl;
+	}
+	stateFile.close();
 }
 
 void genDetectedFaultsMap (char cktName[], vector<char>& detFaultMap) {
@@ -288,9 +397,8 @@ void procSig2 (char cktName[], const vector<char>& detFaultMap, const stateHTabl
 			}
 			#endif
 			cout //<< " (" 
-				<< ffSigVec[st->first] << ", " << st->second 
-				<< ", " << it->first 
-				<< " " << st->first //<< ") " 
+				<< ffSigVec[st->first] << " " << st->second 
+				<< " " << it->first << " " << st->first << ";" //<< ") " 
 				<< endl;
 		}
 		cout << endl;
@@ -403,4 +511,81 @@ void procSig1 (char cktName[], const vector<char>& detFaultMap) {
 
 	cout << " ...... " << endl;
 	ffSigMap.clear();
+}
+
+void computeFaultDetVectors(char cktName[]) {
+	
+	ifstream outFile;
+	char outName[256];
+	sprintf(outName, "%s.out", cktName);
+
+	outFile.open(outName, ios::in);
+	if (outFile == NULL) {
+		cerr << "Unable to open output file " << outName << endl;
+		exit(-1);
+	}
+
+	set<int> faultFound;
+	set<int> uniqueVec;
+
+	typedef pair < set<int>::iterator, bool> retVal_t;
+
+	while (outFile) {
+		string line;
+		getline(outFile, line);
+
+		int ind = line.find("vector");
+		if(ind == string::npos)
+			continue;
+
+		int vecNo = 0, numFaults = 0;
+		ind = line.find(" ", 8);
+
+		stringstream ss;
+  		ss << line.substr(8,ind-8);
+		ss >> vecNo;
+
+		int ll = line.find("detected") + 9;
+		int hl = line.find("faults") - 1;
+
+		stringstream ss2;
+		ss2 << line.substr(ll,hl-ll);
+		ss2 >> numFaults;
+		retVal_t ret = faultFound.insert(numFaults);
+		if (ret.second) {
+			uniqueVec.insert(vecNo);
+			cout << vecNo << " " << numFaults << " added" << endl;
+		}
+		
+	}
+	
+	cout << uniqueVec.size() << " vectors detect faults" << endl;
+	outFile.close();
+
+	char outStateName[256];
+	sprintf(outStateName, "%s.rtlout", cktName);
+	ifstream outStateFile;
+	outStateFile.open(outStateName, ios::in);
+
+	if(outStateFile == NULL) {
+		cerr << "Unable to open state file: " << outStateName << endl;
+		exit(-1);
+	}
+	string line;
+//	getline(outStateFile, line);
+	getline(outStateFile, line);
+	
+	int idx = 0;
+
+	while(outStateFile) {
+		string stateLine;
+		string branchLine;
+		getline(outStateFile, stateLine);
+		getline(outStateFile, branchLine);
+		if ((idx > 0) && (uniqueVec.find(idx+1) != uniqueVec.end()))
+			cout << stateLine << "\t" << branchLine << endl;
+		++idx;
+	}
+	
+	outStateFile.close();
 }

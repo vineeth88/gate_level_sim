@@ -47,6 +47,14 @@ void rtLevelCkt :: printNextState() {}
 inline
 void rtLevelCkt :: printCurrState() {}
 
+void rtLevelCkt :: setCktOutput(string outStr) {
+
+	int val = 0;
+	for(uint i = 0; i < outStr.length(); ++i)
+		val = ((val << 1) | ((outStr[i] - '0') & 0x1));
+	cktVar->x_out = val & 0x3f;
+
+}
 void rtLevelCkt :: setCktState(const cktState& state) {
 	string stateStr = state.getState();
 	assert(stateStr.length() == (uint)numFFs);

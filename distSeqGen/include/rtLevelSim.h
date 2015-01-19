@@ -34,6 +34,9 @@ class rtLevelCkt : public abstrCkt {
 	void setVeriObj(Vtop*);
  	const Vtop* getVeriObj() const;
 
+	void clearBranchCounters();
+	void getBranchCounters(vector<int>&);
+
 };
 
 #endif	// __RTLEVEL_SIM_H__

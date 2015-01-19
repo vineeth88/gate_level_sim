@@ -18,7 +18,7 @@ void RandomVecIn(vecIn_t& vecIn, int size) {
 
 		#if defined(__b12)
 		if (i%NUM_INPUT_BITS == 0) {
-			if (rand() % 100002 > 100000)
+			if (rand() % 10002 > 10000)
 				vecIn[i] = '1';
 			else
 				vecIn[i] = '0';
@@ -52,19 +52,69 @@ int main(int argc, char** argv) {
 	else
 		strcpy(cktName, argv[1]);
 	
+	#ifndef OnlySimulate
+	char sTableName[256];
+	sprintf(sTableName, "%s.ustb", cktName);
+	cout << "Reading states from " << sTableName << endl;
+
+	ifstream sTableFile;
+	sTableFile.open(sTableName, ios::in);
+	if (sTableFile == NULL) {
+		cerr << "Unable to open file " << sTableName << endl
+			 << "Exiting ... " << endl;
+	}
+
+	int NUM_UNIQUE_STATES = 0;
+	string line;
+	stringstream ss;
+	getline(sTableFile, line);
+	ss << line;
+	ss >> NUM_UNIQUE_STATES;
+
+//	sTableFile >> NUM_UNIQUE_STATES;
+//	cout << NUM_UNIQUE_STATES << endl;
+	vector<string> uStateVec(NUM_UNIQUE_STATES);
+	
+	int stateIdx = 0;
+	while (sTableFile && (stateIdx < NUM_UNIQUE_STATES)) {
+		string line;
+		getline(sTableFile, line);
+
+		if(line.length() != (NUM_STATE_BITS + NUM_OUTPUT_BITS)) {
+			cout << line << endl;
+			cout << line.length() << " v " << NUM_STATE_BITS << " " 
+				 << NUM_OUTPUT_BITS << endl;
+//			assert(0);
+		}
+		else {
+			uStateVec[stateIdx] = line;
+			stateIdx++;
+		}
+	}
+	sTableFile.close();
+	#endif
+
 	//#define OnlySimulate
 	#ifdef OnlySimulate
 	vector<vecIn_t> inpVecSeq;
 	strcpy(ffCkt->cktName, cktName);
 	ffCkt->readVecFile(inpVecSeq);
-	
+	string initState(NUM_STATE_BITS, '0');
+	ffCkt->setCktState(cktState(initState.c_str(),0));
+	ffCkt->setCktOutput(string(NUM_OUTPUT_BITS, '0'));
+
 	for (int idx = 0; idx < inpVecSeq.size(); ++idx) {
 		vecIn_t vecIn = inpVecSeq[idx];
-
 		ffCkt->simOneVector(vecIn);
+		vector<int> branch_vec;
+		ffCkt->getBranchCounters(branch_vec);
 		string ffOut = ffCkt->getOutputs();
 		string ffState = ffCkt->getCktState();
 		cout << ffOut << ffState << endl;
+		for(vector<int>::iterator it = branch_vec.begin(); 
+				it != branch_vec.end(); ++it)
+			cout << *it << " ";
+		cout << endl;
 	}
 
 	#endif
@@ -87,42 +137,40 @@ int main(int argc, char** argv) {
 		getline(stateFile, line);
 		
 		int vecNo, faultNo;
+		int ffIdx, fvIdx;
 		string ffStr, fvStr; 
+		string ffString, fvString; 
 		string ffOut, fvOut;
 		
-		int ind = line.find(",");
+		int ind = line.find(";");
 //		cout << "L: " << ind << endl
 //			 << string::npos << endl;
 		if (ind == (int)string::npos)
 			continue;
 		
-//		#if defined(__b10)
-//		assert(ind == (uint)(NUM_STATE_BITS+NUM_OUTPUT_BITS-3));
-//		#elif defined(__b07)
-		assert(ind == (uint)(NUM_STATE_BITS+NUM_OUTPUT_BITS));
-//		#endif
-//		ffStr = line.substr(0,NUM_STATE_BITS);
-//		fvStr = line.substr(ind+2,NUM_STATE_BITS);
+		stringstream ss;
+		ss << line.substr(0,ind);
+		ss >> ffIdx >> fvIdx >> faultNo >> vecNo;
+	
+		ffString = uStateVec[ffIdx];
+		fvString = uStateVec[fvIdx];
 
-		ffStr = line.substr(NUM_OUTPUT_BITS,NUM_STATE_BITS);
-		fvStr = line.substr(NUM_OUTPUT_BITS+ind+2,NUM_STATE_BITS);
-		ffOut = line.substr(0,NUM_OUTPUT_BITS);
-		fvOut = line.substr(ind+2,NUM_OUTPUT_BITS);
+		ffStr =	ffString.substr(NUM_OUTPUT_BITS,NUM_STATE_BITS);
+		fvStr = fvString.substr(NUM_OUTPUT_BITS,NUM_STATE_BITS);
+		ffOut = ffString.substr(0,NUM_OUTPUT_BITS);
+		fvOut = fvString.substr(0,NUM_OUTPUT_BITS);
 
 		cktState ffState = cktState(ffStr.c_str(), vecNo);
 		cktState fvState = cktState(fvStr.c_str(), vecNo);
 
-		stringstream ss;
-		ss << line.substr(2*ind+4);
-		ss >> faultNo >> vecNo;
+//		ss << line.substr(2*ind+4);
+//		ss >> faultNo >> vecNo;
 
 		cout << endl
 			 << ffOut << ffStr << endl
 			 << fvOut << fvStr << endl;
 
-		int NUM_TRIES = 10;
-//	ffState = cktState("011000000110000101011111111000000100000000", 0);
-//	fvState = cktState("011000000110000101011111111111110100000000", 0);
+		int NUM_TRIES = 20;
 		for (int tries = 0; tries < NUM_TRIES; ++tries) {
 			
 			ffCkt->setCktState(ffState);
@@ -147,14 +195,6 @@ int main(int argc, char** argv) {
 			}
 		}
 	}	
-
-//	#if defined(__b10)
-//	ffState = cktState("00010110011", 0);
-//	fvState = cktState("00010110111", 0);
-//	#elif defined(__b07)
-//	ffState = cktState("011000000110000101011111111000000100000000", 0);
-//	fvState = cktState("011000000110000101011111111111110100000000", 0);
-//	#endif
 
 	#endif
 	return 0;
