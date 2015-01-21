@@ -1,0 +1,88 @@
+{
+	++(vlSymsp->__Vcoverage[0]);
+}
+if (vlTOPp->rst) {
+	++(vlSymsp->__Vcoverage[2]);
+}
+else {
+	++(vlSymsp->__Vcoverage[24]);
+	if ((4 & (IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__state))) {
+		++(vlSymsp->__Vcoverage[23]);
+	}
+	else {
+		if ((2 & (IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__state))) {
+			if ((1 & (IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__state))) {
+				++(vlSymsp->__Vcoverage[22]);
+				if (((IData)(vlTOPp->dcqmem_cycstb_i) &(IData)(vlTOPp->dcqmem_ci_i))){
+					++(vlSymsp->__Vcoverage[17]);
+				}
+				if (vlTOPp->v__DOT__or1200_dc_fsm__DOT__hitmiss_eval) {
+					++(vlSymsp->__Vcoverage[18]);
+				}
+				if (((((IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__hitmiss_eval) &(~(IData)(vlTOPp->dcqmem_cycstb_i)))|(IData)(vlTOPp->dcsb_err_i))|(((IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__cache_inhibit)|(IData)(vlTOPp->dcqmem_ci_i))&(IData)(vlTOPp->dcsb_ack_i)))){
+					++(vlSymsp->__Vcoverage[19]);
+				}
+				else {
+					if (vlTOPp->dcsb_ack_i) {
+						++(vlSymsp->__Vcoverage[20]);
+					}
+					else {
+						++(vlSymsp->__Vcoverage[21]);
+					}
+				}
+			}
+			else {
+				++(vlSymsp->__Vcoverage[16]);
+				if (((IData)(vlTOPp->dcsb_ack_i) &(0!=(IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__cnt)))){
+					++(vlSymsp->__Vcoverage[14]);
+				}
+				else {
+					if (vlTOPp->dcsb_ack_i) {
+						++(vlSymsp->__Vcoverage[15]);
+					}
+				}
+			}
+		}
+		else {
+			if ((1 & (IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__state))) {
+				++(vlSymsp->__Vcoverage[13]);
+				if (((IData)(vlTOPp->dcqmem_cycstb_i) &(IData)(vlTOPp->dcqmem_ci_i))){
+					++(vlSymsp->__Vcoverage[7]);
+				}
+				if (vlTOPp->v__DOT__or1200_dc_fsm__DOT__hitmiss_eval) {
+					++(vlSymsp->__Vcoverage[8]);
+				}
+				if (((((IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__hitmiss_eval) &(~(IData)(vlTOPp->dcqmem_cycstb_i)))|(IData)(vlTOPp->dcsb_err_i))|(((IData)(vlTOPp->v__DOT__or1200_dc_fsm__DOT__cache_inhibit)|(IData)(vlTOPp->dcqmem_ci_i))&(IData)(vlTOPp->dcsb_ack_i)))){
+					++(vlSymsp->__Vcoverage[9]);
+				}
+				else {
+					if (((IData)(vlTOPp->v__DOT__tagcomp_miss) &(IData)(vlTOPp->dcsb_ack_i))){
+						++(vlSymsp->__Vcoverage[10]);
+					}
+					else {
+						if ((1 & ((~ (IData)(vlTOPp->v__DOT__tagcomp_miss)) &(~(IData)(vlTOPp->dcqmem_ci_i))))){
+							++(vlSymsp->__Vcoverage[11]);
+						}
+						else {
+							++(vlSymsp->__Vcoverage[12]);
+						}
+					}
+				}
+			}
+			else {
+				++(vlSymsp->__Vcoverage[6]);
+				if ((((IData)(vlTOPp->dc_en) & (IData)(vlTOPp->dcqmem_cycstb_i)) &(IData)(vlTOPp->dcqmem_we_i))){
+					++(vlSymsp->__Vcoverage[3]);
+				}
+				else {
+					if (((IData)(vlTOPp->dc_en) &(IData)(vlTOPp->dcqmem_cycstb_i))){
+						++(vlSymsp->__Vcoverage[4]);
+					}
+					else {
+						++(vlSymsp->__Vcoverage[5]);
+					}
+				}
+			}
+		}
+	}
+}

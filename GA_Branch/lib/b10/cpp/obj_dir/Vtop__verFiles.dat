@@ -1,0 +1,12 @@
+# DESCRIPTION: Verilator output: Timestamp data for --skip-identical.  Delete at will.
+C "--cc --coverage-line --prefix Vtop -CFLAGS -g b10.v"
+S   4365529 27529467  1397155569 "/usr/local/bin/verilator_bin"
+S      5922 38013951  1421769286 "b10.v"
+T     14091 38014333  1421785737 "obj_dir/Vtop.cpp"
+T      3197 38014332  1421785737 "obj_dir/Vtop.h"
+T      1696 38014335  1421785737 "obj_dir/Vtop.mk"
+T       564 38014331  1421785737 "obj_dir/Vtop__Syms.cpp"
+T       972 38014330  1421785737 "obj_dir/Vtop__Syms.h"
+T       206 38014336  1421785737 "obj_dir/Vtop__ver.d"
+T         0        0  1421785737 "obj_dir/Vtop__verFiles.dat"
+T      1093 38014334  1421785737 "obj_dir/Vtop_classes.mk"
