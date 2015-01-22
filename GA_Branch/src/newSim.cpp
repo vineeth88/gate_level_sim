@@ -426,71 +426,8 @@ void Stage2_GenerateVectors(Stage2_Param* paramObj2) {
 			bNode_t* iter_node = branchGraph.getNode(iter_val);
 			assert(iter_node);
 
-			#ifdef NEW_STAGE2_CORE
 			paramObj2->currPath = target_path;
 			Stage2_Core(paramObj2, iter_val);
-			#endif
-
-			#ifdef OLD_STAGE2_CORE 
-			for (int st = 0; (uint) st < target_path.length(); ++st) {
-				int brInd = target_path[st] - 48;
-				int tar_edge = iter_node->outEdges[brInd];
-
-				cout << " Path[" << st << "/" << target_path.length() << "]: " << tar_edge << endl;
-
-				int_vec self_loop_br;
-				for (int br = 0 ; br < iter_node->outNodes.size(); ++br) {
-					if (iter_node->outNodes[br] == iter_val) {
-						self_loop_br.push_back(iter_node->outEdges[br]);
-					}
-				}
-
-//				if (self_loop_br.size()) {
-//					cout << "Self-loop: ";
-//					printVec(self_loop_br);
-//					cout << endl;
-//				}
-
-				/* Run stage 2	*/
-				Stage2_Core(paramObj2);
-				int branch_hit = 20;
-				for (int br = 0; br < iter_node->outEdges.size(); ++br) {
-					int tmp_edge = iter_node->outEdges[br];
-					if ((paramObj2->lastBranchHit[tmp_edge]) && 
-							(iter_node->outNodes[br] != iter_val))
-						branch_hit = 1;
-				}
-				if (branch_hit) {
-					if(self_loop_br.size()) {
-						while (branch_hit) {
-							/*	Run stage 2	*/
-							//Stage2_Core(paramObj2);
-							if (paramObj2->lastBranchHit[tar_edge]) {
-								branch_hit = 0;
-								break;
-							}
-							for (int br = 0; br < iter_node->outEdges.size(); ++br) {
-								int tmp_edge = iter_node->outEdges[br];
-								if ((paramObj2->lastBranchHit[tmp_edge]) && 
-										(iter_node->outNodes[br] != iter_val))
-									branch_hit = 1;
-							}
-							branch_hit--;
-							cout << "In branch_hit : " << branch_hit << endl;
-						}
-					}
-					else {
-						cout << "Currently Unreachable" << endl;
-						break;
-					}
-				}
-
-				iter_val = iter_node->outNodes[brInd];
-				iter_node = branchGraph.getNode(iter_val);
-				assert(iter_node);
-			}
-
-			#endif
 
 			cout << endl << "END OF PATH" << endl;
 
@@ -735,7 +672,7 @@ void Stage2_Core(Stage2_Param* paramObj, int start_node) {
 
 			/* Reset masking for b12 */
 			#if defined(__b12)
-			for (uint x = 0; x < indiv->input_vec.length(); x += 5) 
+			for (uint x = 0; x < indiv->input_vec.length(); x += NUM_INPUT_BITS) 
 				indiv->input_vec[x] = '0';
 			#endif
 
@@ -1176,10 +1113,11 @@ void Stage1_GenerateVectors(Stage1_Param* paramObj) {
 			gaIndiv_t* indiv = stage0Pop.indiv_vec[ind];
 
 			/* Reset masking for b12 */
-#if defined(__b12)
-			for (int x = 0; x < indiv->input_vec.length(); x += 5) 
+			#if defined(__b12)
+			for (int x = 0; x < indiv->input_vec.length(); x += NUM_INPUT_BITS)
 				indiv->input_vec[x] = '0';
-#endif
+			#endif
+
 			//indiv->simCkt(cktVar);
 			indiv->simCkt(rtlCkt);
 

@@ -21,6 +21,7 @@ int CKT_WITH_MEMORY = 0;
 
 int_vec	exclBranchList;
 int_vec IsBranchLeaf;
+int_vec BranchNumTries;
 
 // ===================== Class definitions ==========================
 class paramObj_t { 
@@ -40,10 +41,12 @@ class paramObj_t {
 
 		vecIn_t		inputVec;
 		state_pVec	stateList;
+//		stateMap_t	stateTable;
 		int 		startIdx;		// Start index of stage 2
 
 		int_vec		branchHit;
 		int_vec		lastBranchHit;
+		int_vec		branch_index;
 
 		rtLevelCkt*	rtlCkt;
 		brGraph_t*	cktBrGraph;
@@ -92,15 +95,22 @@ class paramObj_t {
 		void readParam();
 };
 
+typedef pair<int, int> nodePair_t;
+typedef map<nodePair_t, string> pathMap_t;
+
 // ===================== Function declarations ======================
 void readExclBranchList(char[]);
 int readBranchGraph(covGraph_t&, brGraph_t&);
 
 void Stage1_GenerateVectors(paramObj_t*);
+void Stage2_GenerateVectors(paramObj_t*);
+void Stage2_Core(paramObj_t*, int);
+string getPathBFS(brGraph_t*, int, int);
 
 int computeBranches(int_vec&);
 bool compCoverage(gaIndiv_t*, gaIndiv_t*);
 void printCnt(int_vec&);
+void printVec(int_vec&);
 
 int main(int argc, char* argv[]) {
 
@@ -207,7 +217,10 @@ int main(int argc, char* argv[]) {
 
 	/* Start: Stage 1 */
 	Stage1_GenerateVectors(paramObj);
-	
+
+	if (BRGRAPH_PRESENT)
+		Stage2_GenerateVectors(paramObj);
+
 	delete paramObj;
 	return 0;
 }
@@ -532,7 +545,8 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			/* Reset masking for b12 */
 			//#if defined(__b12)
-			//	for (int x = 0; x < indiv->input_vec.length(); x += 5) 
+			//	for (int x = 0; x < indiv->input_vec.length(); 
+			//		x += NUM_INPUT_BITS) 
 			//		indiv->input_vec[x] = '0';
 			//#endif
 
@@ -971,12 +985,650 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	paramObj->inputVec = startVec;
 	paramObj->branchHit = branch_cov;
 	paramObj->stateList = indiv_->state_list;
+	paramObj->branch_index = (indiv_->state_list.back())->branch_index;
 
 	//	cout << "Branches covered after Stage 1: " << endl;
 	//	printCnt(paramObj->branchHit);
 	
 	delete rstState;
 	delete rtlCkt;
+}
+
+void Stage2_GenerateVectors(paramObj_t* paramObj) {
+	
+	int POP_SIZE = paramObj->POP_SIZE_2;
+	int MAX_TRIES = paramObj->MAX_TRIES_2;
+
+	int_vec &branch_index = paramObj->branch_index;
+	int_vec &branchHit = paramObj->branchHit;
+	brGraph_t* branchGraph = paramObj->cktBrGraph;
+	
+	Vtop* cktVar = new Vtop;
+	rtLevelCkt* rtlCkt = new rtLevelCkt(cktVar);
+	paramObj->rtlCkt = rtlCkt;
+
+	/* computing branch_index */
+	int_vec unCovered;
+	for (int br = 0; br < NUM_BRANCH; ++br) {
+		if((IsDefaultBranch(br) == 0) && 
+				(branchHit[br] == 0) && 
+				(IsBranchLeaf[br])) {
+			bEdge_t* edge = branchGraph->getEdge(br);
+			if (edge) 
+				unCovered.push_back(br);
+		}
+	}
+
+	int MAX_ROUNDS = paramObj->MAX_ROUNDS_2;
+	BranchNumTries = int_vec(NUM_BRANCH, 0);
+	pathMap_t pathDB;
+	
+	int exit_status = 1;
+
+	for (int num_round = 0; num_round < MAX_ROUNDS; ++num_round) {
+
+		cout << endl 
+			<< "ROUND : " << num_round << " / " << MAX_ROUNDS
+			<< endl << endl;
+
+		if (unCovered.size() == 0) {
+			exit_status = 0;
+			break;
+		}
+
+		/*	edgeVec = The list of edges traversed in the last cycle	*/
+		int_vec edgeVec;
+		for (int_vec_iter br = branch_index.begin(); br != branch_index.end(); ++br) {
+			if (IsBranchLeaf[*br])	{
+				bEdge_t* curr_edge = branchGraph->getEdge(*br);
+				if (curr_edge) 
+					edgeVec.push_back(*br);
+			}
+		}
+
+		/* 	curr_val = Selected edge with endpoints start_val -> end_val */
+		if (edgeVec.size() == 0)
+			return;
+		int curr_val = edgeVec.back();
+		bEdge_t* curr_edge = branchGraph->getEdge(curr_val);
+		int end_val = curr_edge->endTop;
+
+		bNode_t* curr_node = branchGraph->getNode(end_val);
+		assert(curr_node);
+
+		string target_path = "Unreachable";
+		int target_lvl = (2 << 20);
+		int target_node = -1;
+//		int target_tries = paramObj->MAX_TRIES;
+
+		/*	- Find path from curr_node to all the start_nodes of the uncovered edges
+			- Find the uncovered edge with the shortest path
+			- Set the topNode(start_node) as the target_node */
+
+		for (int_vec_iter it = unCovered.begin(); it != unCovered.end(); ++it) {
+			string path;
+
+			nodePair_t curr = make_pair(end_val, *it);
+
+			if (pathDB.find(curr) == pathDB.end()) {
+				path = getPathBFS(branchGraph, end_val, *it);
+				pathDB.insert(make_pair(curr, path));
+			}
+			else {
+				path = pathDB[curr];
+			}
+
+			int lvl = path.length();
+
+			#ifdef S2_DBG_PRINT
+			cout << end_val << "-> " 
+				<< *it << ": " 
+				<< path << endl;
+			#endif
+
+			if ((target_lvl > lvl) && (path.compare("Unreachable"))) {
+				target_lvl = lvl;
+				target_node = *it;
+				target_path = path;
+			}
+		}
+
+		cout << "Target	: " << target_node << endl
+			<< "Level 	: " << target_lvl << endl
+			<< "Path 	: " << target_path << endl;
+
+		if (target_path.compare("Unreachable")) {
+			if (BranchNumTries[target_node] >= MAX_TRIES) {
+				exit_status = 1;
+				break;
+			}
+				
+
+			//BranchNumTries[target_node]++;
+			int iter_val = end_val;
+
+			bNode_t* iter_node = branchGraph->getNode(iter_val);
+			assert(iter_node);
+
+			paramObj->currPath = target_path;
+			Stage2_Core(paramObj, iter_val);
+
+			cout << endl << "END OF PATH" << endl;
+
+			for (int br = 0; (uint)br < unCovered.size(); ++br) {
+				if (unCovered[br] == target_node)
+					unCovered[br] = -100;
+				else if (branchHit[unCovered[br]])
+					unCovered[br] = -100;
+			}
+
+			int_vec newVec;
+			for (int_vec_iter br = unCovered.begin(); br != unCovered.end(); ++br) {
+				if (*br != -100)
+					newVec.push_back(*br);
+			}
+			if (branchHit[target_node] == 0)
+				newVec.push_back(target_node);
+
+			unCovered.clear();
+			unCovered = newVec;
+			newVec.clear();
+
+			cout << "unCovered: " << endl;
+			printVec(unCovered);
+			cout << endl;
+		}
+		else {
+			
+			for (int_vec_iter br = unCovered.begin(); br != unCovered.end(); ++br) {
+				BranchNumTries[*br]++;
+			}
+
+			cout << endl
+				<< " * * * * * * * * * * * * * " << endl
+				<< "No reachable path. Simulating vector for next state." << endl;
+
+			stateMap_t nxtStateMap = stateMap_t();
+			map<keyVal_t, vecIn_t> vecMap;
+			gaPopulation_t nxtStatePop(POP_SIZE, 1);
+
+			state_pVec initPool;
+			initPool.push_back(paramObj->stateList.back());
+
+			cout << "Start state: " << endl
+				 << initPool[0]->getState()
+				 << endl;
+
+			nxtStatePop.initPopulation(initPool);
+
+			rtLevelCkt *rtlCkt = paramObj->rtlCkt;
+			for (int ind = 0; ind < POP_SIZE; ++ind) {
+
+				rtlCkt->resetCounters();
+				gaIndiv_t* indiv = nxtStatePop.indiv_vec[ind];
+				indiv->simCkt(rtlCkt);
+				//indiv->simCkt(cktVar);
+
+				int vt = 0;
+				for (state_pVec_iter st = indiv->state_list.begin(); 
+						st != indiv->state_list.end(); ++st, ++vt) {
+					keyVal_t hash = (*st)->getHash();
+					retVal_t ret = nxtStateMap.insert(make_pair(hash, *st));
+					if (ret.second == false) {
+						(ret.first->second)->hit_count++;
+					}
+					vecMap.insert(make_pair(hash, indiv->input_vec)); 
+				}
+			}
+
+			vector<vecIn_t> nxtVec;
+			vector<int> nxtPaths;
+			for (stateMap_iter st = nxtStateMap.begin(); 
+					st != nxtStateMap.end(); ++st) {
+
+				int_vec edgeVec;
+				edgeVec.clear();
+				state_t *curr = st->second;
+				for (int_vec_iter br = curr->branch_index.begin(); 
+						br != curr->branch_index.end(); ++br) {
+					if (IsBranchLeaf[*br])	{
+						bEdge_t* curr_edge = branchGraph->getEdge(*br);
+						if (curr_edge) 
+							edgeVec.push_back(*br);
+					}
+				}
+
+				int curr_val = edgeVec.back();
+				bEdge_t* curr_edge = branchGraph->getEdge(curr_val);
+//				int start_val = curr_edge->startTop;
+				int end_val = curr_edge->endTop;
+
+				bNode_t* curr_node = branchGraph->getNode(end_val);
+				assert(curr_node);
+
+				string target_path = "Unreachable";
+				int target_lvl = (2 << 20);
+//				int target_node = -1;
+
+				/*	- Find path from curr_node to all the start_nodes of the uncovered edges
+					- Find the uncovered edge with the shortest path
+					- Set the topNode(start_node) as the target_node */
+				int num_paths;
+				for (int_vec_iter it = unCovered.begin(); it != unCovered.end(); ++it) {
+					string path;
+					nodePair_t curr_pair = make_pair(end_val, *it);
+					if (pathDB.find(curr_pair) == pathDB.end()) {
+						path = getPathBFS(branchGraph, end_val, *it);
+						pathDB.insert(make_pair(curr_pair, path));
+					}
+					else {
+						path = pathDB[curr_pair];
+					}
+
+					int lvl = path.length();
+
+					cout << *it << ": " << path << endl;
+					if (path.compare("Unreachable")) {
+						num_paths++;
+						if (target_lvl > lvl) {
+							target_lvl = lvl;
+							target_node = *it;
+							target_path = path;
+						}
+					}
+				}
+
+				if (target_path.compare("Unreachable")) {
+					nxtVec.push_back(vecMap[st->first]);
+					nxtPaths.push_back(num_paths);
+				}
+			}
+
+			int max_num_paths = -1, max_path_index = -1;
+//			assert(nxtPaths.size());
+			if (nxtPaths.size() == 0) {
+				//PrintVectorSet(paramObj->inputVec, true);
+				//getDominator(covGraph, unCovered);
+				exit_status = -1;
+				break;
+				/* Might need to backtrack or just exit in this case */
+			}
+
+			for (uint np = 0; np < nxtPaths.size(); ++np) {
+				if (nxtPaths[np] > max_num_paths) {
+					max_num_paths = nxtPaths[np];
+					max_path_index = np;
+				}
+			}
+
+			cout << endl;
+
+			rtlCkt->setCktState(paramObj->stateList.back());
+			rtlCkt->simOneVector(nxtVec[max_path_index]);
+			state_t *tmpState = new state_t(rtlCkt, paramObj->stateList.size());
+			(paramObj->stateList).push_back(tmpState);
+			paramObj->inputVec += nxtVec[max_path_index];
+
+			cout << "Adding vector: " << nxtVec[max_path_index] << endl
+				<< "State: " << endl
+				<< tmpState->getState()
+				<< endl; 
+
+			paramObj->lastBranchHit = int_vec(NUM_BRANCH, 0);
+			for (int_vec_iter it = tmpState->branch_index.begin();
+					it != tmpState->branch_index.end(); ++it)
+				paramObj->lastBranchHit[*it]++;
+
+			paramObj->branch_index = tmpState->branch_index;
+			for (int ind = 0; ind < NUM_BRANCH; ++ind)
+				paramObj->branchHit[ind] += paramObj->lastBranchHit[ind];
+			printCnt(paramObj->lastBranchHit);
+			printCnt(paramObj->branchHit);
+
+			cout << " * * * * * * * * * * * * * * * * * * * * " << endl << endl;
+		}
+	}
+
+	if (exit_status == 0) 
+		cout << "All branches reached!!" << endl;
+	else if (exit_status == 1)
+		cout << "Maximum Try Limit reached. Terminating Stage 2" << endl;
+	else
+		cout << "Assertion: No paths found. Exiting!!" << endl;
+
+#ifdef S2_DBG_PRINT
+	int i = 0;
+	for (state_pVec_iter st = paramObj->stateList.begin();
+			st != paramObj->stateList.end(); ++st, ++i) {
+		cout << paramObj->inputVec.substr(i*NUM_INPUT_BITS, NUM_INPUT_BITS);
+		cout << endl << (*st)->getState()
+			 << endl << endl;
+	}
+#endif
+
+	return;
+}
+
+void Stage2_Core(paramObj_t* paramObj, int start_node) {
+
+	int NUM_GEN	= paramObj->NUM_GEN_2;
+	int POP_SIZE = paramObj->POP_SIZE_2;
+	int VEC_LEN = paramObj->INDIV_LEN_2/NUM_INPUT_BITS;
+	
+	brGraph_t* branchGraph = paramObj->cktBrGraph;
+	rtLevelCkt* rtlCkt = paramObj->rtlCkt;
+	int_vec &branchHit = paramObj->branchHit;
+	int_vec &lastBranchHit = paramObj->lastBranchHit;
+	
+	lastBranchHit = int_vec(NUM_BRANCH, 0);
+
+	state_pVec startPool;
+	state_t* start_state = paramObj->stateList.back();
+	startPool.push_back(start_state);
+
+	rtlCkt->setCktState(start_state);
+	rtlCkt->resetCounters();
+
+	int TAR_EDGE_FITNESS	= -200;
+	int TAR_NODE_FITNESS	= -100;
+	int SELF_LOOP_FITNESS 	= -50;
+	int OUT_EDGE_FITNESS	= 100;
+	int UNIMPT_FITNESS		= 0;
+
+	/*	Run GA	*/
+	gaPopulation_t stage2Pop(POP_SIZE, VEC_LEN);
+	stage2Pop.initPopulation(startPool);
+	
+	fitness_t prev_gen_fitness = (2 << 24), curr_gen_fitness = (2 << 25);
+	string path = paramObj->currPath;
+	//NUM_GEN = 1;
+	for (int gen = 0; gen < NUM_GEN; ++gen) {
+		
+		cout << endl << "GEN " << gen << endl;
+
+		fitness_t curr_gen_max_fit = - (2 << 20), curr_gen_min_fit = (2 << 20);
+		for (int ind = 0; ind < POP_SIZE; ++ind) {
+			
+			rtlCkt->resetCounters();
+			gaIndiv_t* indiv = stage2Pop.indiv_vec[ind];
+
+			/* Reset masking for b12 */
+			#if defined(__b12)
+			for (uint x = 0; x < indiv->input_vec.length(); 
+					x += NUM_INPUT_BITS) 
+				indiv->input_vec[x] = '0';
+			#endif
+
+			indiv->simCkt(rtlCkt);
+			//indiv->simCkt(cktVar);
+			
+			int path_idx = 0, exit_state_loop = 0;
+			int curr_node = start_node;
+			int indiv_idx = 0;
+			int_vec state_fit_vec;
+			fitness_t prev_fit = 0;
+
+			for (state_pVec_iter st = indiv->state_list.begin();
+					st != indiv->state_list.end(); ++st) {
+
+				/* Compute	- target edge [nxt_edge]
+							- target node [nxt_node]
+							- set of branches in self loop	*/
+
+				bNode_t* curr_node_obj = branchGraph->getNode(curr_node);
+				assert(curr_node_obj);
+
+				int nxt_node = curr_node_obj->outNodes[path[path_idx] - '0'];
+				int nxt_edge = curr_node_obj->outEdges[path[path_idx] - '0'];
+
+				set<int> self_loop_br, out_node_br;
+				for (int bt = 0; (uint) bt < curr_node_obj->outEdges.size(); ++bt) { 
+					int br = curr_node_obj->outEdges[bt];
+					if (br == nxt_edge)
+						continue;
+
+					if (curr_node_obj->outNodes[bt] == curr_node)
+						self_loop_br.insert(br);
+					else
+						out_node_br.insert(br);
+				}
+				
+				int state_fit = 0;
+				for (int_vec_iter br = (*st)->branch_index.begin(); 
+						br != (*st)->branch_index.end(); ++br) {
+					
+					/* Add vector to branch	*/
+
+					if(IsBranchLeaf[*br] == 0)
+						continue;
+
+					bEdge_t* curr_edge_obj = branchGraph->getEdge(*br); 
+					if (curr_edge_obj == NULL)
+						continue;
+					
+					/* If correct edge [nxt_edge] was taken */
+					if (*br == nxt_edge) {
+//						state_fit += (TAR_EDGE_FITNESS) * (path_idx + 1);
+						state_fit += prev_fit + TAR_EDGE_FITNESS;
+						path_idx++;
+						curr_node = nxt_node;
+						break;
+					}
+						
+					/* if correct node [nxt_node] was reached */
+					else if (curr_edge_obj->endTop == nxt_node) {
+//						state_fit += (TAR_NODE_FITNESS) * (path_idx + 1);
+						state_fit += prev_fit + TAR_NODE_FITNESS;
+						path_idx++;
+						curr_node = nxt_node;
+						break;
+					}
+
+					/* If self loop was taken */
+					else if (self_loop_br.find(*br) != self_loop_br.end()) {
+						state_fit += prev_fit + SELF_LOOP_FITNESS;
+						break;
+					}
+
+					/* Else if any other edge was taken */
+					else if (out_node_br.find(*br) != out_node_br.end()) {
+						indiv_idx = path_idx;	
+						exit_state_loop = true;
+						state_fit += prev_fit + OUT_EDGE_FITNESS;
+						break;
+					}
+
+					/* If the branch does not matter */
+					else {
+						state_fit += UNIMPT_FITNESS;
+					}
+				}	
+
+				state_fit_vec.push_back(state_fit);
+				prev_fit = state_fit;
+
+				if ((exit_state_loop) || ((uint)path_idx == path.length())){
+//					cout << "Indiv " << ind << " digressed @ index " 
+//						 << path_idx << "after" << state_fit_vec.size()
+//						 << endl;
+					break;
+				}
+
+			}	// END State
+			
+//			cout << "Indiv " << ind << " reached " << state_fit_vec.size()
+//				 << " vectors"  << endl
+//				 << "Fitness: ";
+//			printVec(state_fit_vec);
+//			cout << endl;
+//			indiv->printIndiv(0);
+
+			indiv->fitness = 0;			
+			int max_ind = -1, max_fit = (2 << 20);
+			for (int it = 0; (uint)it < state_fit_vec.size(); ++it) {
+				if (max_fit >= state_fit_vec[it]) {
+					max_ind = it;
+					max_fit = state_fit_vec[it];
+				}
+				indiv->fitness += state_fit_vec[it];
+			}
+			if (max_ind != -1)
+				indiv->max_index = max_ind;
+
+			if (curr_gen_fitness >= indiv->fitness)
+				curr_gen_fitness = indiv->fitness;
+
+			if (curr_gen_min_fit >= indiv->fitness)
+				curr_gen_min_fit = indiv->fitness;
+
+			if (curr_gen_max_fit <= indiv->fitness)
+				curr_gen_max_fit = indiv->fitness;
+
+#ifdef S2_DBG_PRINT
+			cout << indiv->fitness << " : " 
+				<< indiv->max_index + 1 << " vectors " 
+				<< endl << endl;
+#endif
+		}	// END Indiv
+
+//		cout << "Max: " << curr_gen_max_fit
+//			<< " Min: " << curr_gen_min_fit << endl;
+		bool gaTerminate = false;
+
+		if ((curr_gen_min_fit == curr_gen_max_fit) ||
+				(gen == NUM_GEN - 1) ||
+				(prev_gen_fitness < curr_gen_fitness))
+			gaTerminate = true;
+			
+		if (gaTerminate) {
+			cout << "Terminating after GEN " << gen << endl;
+			break;
+		}
+		else {
+			stage2Pop.gaEvolve();
+			prev_gen_fitness = curr_gen_fitness;
+			curr_gen_fitness = (2 << 25);
+		}
+
+	}	// END Generation
+
+#ifndef GA_FIND_TOP_INDIV
+	std::sort(stage2Pop.indiv_vec.begin(), stage2Pop.indiv_vec.end(), compFitness);
+	gaIndiv_t *indiv = stage2Pop.indiv_vec[0];
+#endif
+
+#ifdef GA_FIND_TOP_INDIV
+	gaIndiv_t *indiv = stage2Pop.indiv_vec[0];
+	for (gaIndiv_pVec_iter gt = stage2Pop.indiv_vec.begin(); 
+			gt != stage2Pop.indiv_vec.end(); ++gt) {
+		if (compFitness(*gt, indiv))
+			indiv = *gt;
+	}
+#endif
+	
+	cout << endl << "After GA(Core) : " << endl;
+	indiv->printIndiv(0);
+//	cout << endl << indiv->max_index + 1 << " vectors copied" << endl;
+
+	paramObj->inputVec += indiv->input_vec.substr(0, 
+					NUM_INPUT_BITS * (indiv->max_index + 1));
+
+	for (int ind = 0; ind <= indiv->max_index; ++ind) {
+		state_t *st = indiv->state_list[ind];
+		if (st == NULL) {
+			cout << "GG" << endl;
+			break;
+		}
+		for (int_vec_iter it = st->branch_index.begin();
+				it != st->branch_index.end(); ++it)
+			lastBranchHit[*it]++;
+
+		paramObj->stateList.push_back(indiv->state_list[ind]);
+		indiv->state_list[ind] = NULL;
+	}
+	
+	paramObj->branch_index = paramObj->stateList.back()->branch_index;
+	for (int ind = 0; ind < NUM_BRANCH; ++ind)
+		branchHit[ind] += lastBranchHit[ind];
+	
+	cout << "Returning from Stage2_Core" << endl;
+	printCnt(paramObj->branchHit);
+	
+	cout << paramObj->stateList.back()->getState() << endl;
+
+}
+
+string getPathBFS(brGraph_t* brGraph, int start, int target) {
+
+#ifdef S2_DBG_PRINT
+	cout << "Finding path from " << start << " -> " << target << endl;
+#endif
+	map<int, string> label;
+	map<int, int> level;
+
+	typedef pair< map<int, string>::iterator, bool> retStr;
+
+	int max_level = -1;
+	string path = "";
+	vector<int> bfsQueue;
+	bfsQueue.push_back(start);
+	level.insert(make_pair(start, 0));
+	label.insert(make_pair(start, ""));
+
+	const int THRESH_LEVEL = 20;
+	const int MAX_QUEUE_SIZE = 1000;
+	for (int qInd = 0; (uint) qInd < bfsQueue.size(); ++qInd) {
+
+		int front = bfsQueue[qInd];
+		bNode_t* curr = brGraph->getNode(front);
+		assert(curr);
+
+		//		cout << "F: " << front << endl;
+		for (int eInd = 0; (uint) eInd < curr->outNodes.size(); ++eInd) {
+			int node_ = curr->outNodes[eInd];
+
+			retStr ret;
+			char ch[2];
+			ch[0] = eInd + 48; ch[1] = '\0';
+			string tmpLabel = label[front] + string(ch);
+			ret = label.insert(make_pair(node_, tmpLabel));
+
+			int tmpLevel = level[front] + 1;
+			if (ret.second) {
+				level.insert(make_pair(node_, tmpLevel));
+			}
+			//			if (node_ == target) {
+			//				path = tmpLabel;
+			//				return tmpLevel;
+			//			} 
+
+			int edge_ = curr->outEdges[eInd];
+			if (edge_ == target) {
+				//				path = tmpLabel;
+				//				return tmpLevel;
+				return tmpLabel;
+			}
+
+			if (max_level < tmpLevel)
+				max_level = tmpLevel;
+
+			if (ret.second) {
+				bfsQueue.push_back(node_);
+			}
+
+		}
+
+		if ((max_level > THRESH_LEVEL) || (qInd > MAX_QUEUE_SIZE)) {
+			cout << "Lvl: " << max_level << "/" << THRESH_LEVEL << "\t"
+				<< "Q: " << qInd << "/" << MAX_QUEUE_SIZE << endl;
+			path = "Unreachable";
+			return path;
+		}
+
+	}
+
+	path = "Unreachable";
+	return path;
 }
 
 int computeBranches(vector<int>& branch_cov) {
@@ -1008,4 +1660,10 @@ void printCnt(int_vec& vec_) {
 			num_branch++;
 	}
 	cout << endl << "#Branch " << NUM_BRANCH - num_branch << endl;
+}
+
+void printVec(int_vec& vec_) {
+	for (int_vec_iter vt = vec_.begin();
+			vt != vec_.end(); ++vt)
+		cout << *vt << " ";
 }
