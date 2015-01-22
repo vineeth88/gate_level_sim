@@ -83,6 +83,42 @@ class abstrCkt {
 
 };
 
+class state_t {
+
+	string state_val;
+	public:
+
+	int state_index;
+	gaIndiv_t* pIndiv;
+
+	int hit_count;
+	
+	vector<int> branch_index;
+	
+	fitness_t state_fitness;
+
+	// Constructors
+	state_t();
+	state_t(const string&);
+    state_t(const state_t&);
+	state_t(const rtLevelCkt* rtlObj, int index_ = -1);
+	state_t(const gateLevelCkt*, int index_ = -1);
+
+	~state_t();
+
+    state_t& operator = (const state_t& copy_obj);
+	bool operator==(const state_t& lhs);
+	bool operator[](int) const;
+
+	// Member functions
+	keyVal_t 	getHash() const;
+	string 		getState() const;
+
+	#ifdef MEM_ALLOC_DBG_ON
+	static int mem_alloc_cnt;
+	#endif
+};
+
 // ==================================================================
 //	class cktState
 // 	Contains the circuit state, modeled as a string
@@ -129,37 +165,4 @@ class abstrCkt {
 //	keyVal_t getHash();
 //};
 
-class state_t {
-
-	string state_val;
-	public:
-
-	int state_index;
-	gaIndiv_t* pIndiv;
-
-	int hit_count;
-	
-	vector<int> branch_index;
-	
-	fitness_t state_fitness;
-
-	// Constructors
-	state_t();
-	state_t(const string&);
-    state_t(const state_t&);
-	state_t(const rtLevelCkt* rtlObj, int index_ = -1);
-	state_t(const gateLevelCkt*, int index_ = -1);
-
-	~state_t();
-
-    state_t& operator = (const state_t& copy_obj);
-	bool operator==(const state_t& lhs);
-	bool operator[](int) const;
-
-	// Member functions
-	keyVal_t 	getHash() const;
-	string 		getState() const;
-
-	static int mem_alloc_cnt;
-};
 #endif // __CIRCUIT_H__

@@ -13,7 +13,9 @@ gaIndiv_t::gaIndiv_t (int index_, int vec_length_) :
 	branch_cycle = vector<int>(vec_length, 0);
 	max_index = -1, num_branch = 0;
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt++;
+	#endif
 }
 
 gaIndiv_t::gaIndiv_t (int index_, int vec_length_, state_t* start_) :
@@ -28,7 +30,9 @@ gaIndiv_t::gaIndiv_t (int index_, int vec_length_, state_t* start_) :
 	branch_cycle = vector<int>(vec_length, 0);
 	max_index = -1, num_branch = 0;
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt++;
+	#endif
 }
 
 gaIndiv_t::gaIndiv_t(const gaIndiv_t& copy_obj) :
@@ -47,7 +51,9 @@ gaIndiv_t::gaIndiv_t(const gaIndiv_t& copy_obj) :
 	max_index = copy_obj.max_index;
 	num_branch = copy_obj.num_branch;
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt++;
+	#endif
 }
 
 gaIndiv_t::~gaIndiv_t() {
@@ -62,9 +68,11 @@ gaIndiv_t::~gaIndiv_t() {
 	state_list.clear();
 	branch_cov.clear();
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt--;
 	#ifdef _DBG_DEST_CALL_
 	cout << endl << "Deleting gaIndiv_t " << mem_alloc_cnt << endl;
+	#endif
 	#endif
 }
 

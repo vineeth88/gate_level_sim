@@ -128,7 +128,9 @@ state_t::state_t() {
 	pIndiv = NULL;	
 	state_val = string(NUM_STATE_BITS, '0');
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt++;
+	#endif
 }
 
 state_t::state_t(const state_t& copy_obj) {
@@ -142,7 +144,9 @@ state_t::state_t(const state_t& copy_obj) {
 	pIndiv = copy_obj.pIndiv;
 	state_fitness = copy_obj.state_fitness;
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt++;
+	#endif
 }
 
 state_t::state_t(const rtLevelCkt* rtlObj, int state_index_) :
@@ -154,7 +158,9 @@ state_t::state_t(const rtLevelCkt* rtlObj, int state_index_) :
 	hit_count = 0;
 	pIndiv = NULL;	
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt++;
+	#endif
 }
 
 state_t::~state_t() {
@@ -164,9 +170,11 @@ state_t::~state_t() {
 	state_val = "INVALID STATE";
 	branch_index.clear();
 
+	#ifdef MEM_ALLOC_DBG_ON
 	mem_alloc_cnt--;
 	#ifdef _DBG_DEST_CALL_
 	cout << endl << "Deleted state_t " << mem_alloc_cnt << endl;
+	#endif
 	#endif
 }
 

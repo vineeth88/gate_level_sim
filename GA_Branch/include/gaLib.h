@@ -47,7 +47,9 @@ class gaIndiv_t {
 	void seedIndiv(gaIndiv_t*, int, int);
 	void printIndiv(bool state_ = false);
 
+	#ifdef MEM_ALLOC_DBG_ON
 	static int mem_alloc_cnt;
+	#endif
 };
 
 class gaPopulation_t {
@@ -71,7 +73,9 @@ class gaPopulation_t {
 	void gaMutate();
 	void gaEvolve();
 
+	#ifdef MEM_ALLOC_DBG_ON
 	static int mem_alloc_cnt;
+	#endif
 };
 
 int SelectTournament(const vector<fitness_t>&);

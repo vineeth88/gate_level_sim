@@ -28,7 +28,8 @@ OBJS_GEN = circuit.o rtLevelSim.o \
 ${BENCH}Int.o \
 verilated.o SpCoverage.o \
 gaLib.o graphLib.o \
-newSim.o \
+branchSim.o 
+#newSim.o \
 
 TARGET_GEN = ${BENCH}Sim
 #DEFINE_GEN = -D_STAGE1_OLD_FN_
@@ -52,6 +53,9 @@ testSim.o:	$(INCL_DIR)/vType.h $(INCL_DIR)/incl.h $(INCL_DIR)/${BENCH}Int.h $(SR
 
 newSim.o: $(INCL_DIR)/verInclude.h $(INCL_DIR)/incl.h $(INCL_DIR)/${BENCH}Int.h $(INCL_DIR)/gaLib.h $(SRC_DIR)/newSim.cpp $(SRC_DIR)/${BENCH}Int.cpp $(SRC_DIR)/gaLib.cpp 
 	$(CXX) $(CFLAGS) -I. -MMD $(INCLUDE) -DVL_PRINTF=printf -DVM_TRACE=0 -DVM_COVERAGE=0 -DVL_DEBUG=1 -c -o newSim.o $(SRC_DIR)/newSim.cpp
+
+branchSim.o: $(INCL_DIR)/verInclude.h $(INCL_DIR)/incl.h $(INCL_DIR)/${BENCH}Int.h $(INCL_DIR)/gaLib.h $(SRC_DIR)/branchSim.cpp $(SRC_DIR)/${BENCH}Int.cpp $(SRC_DIR)/gaLib.cpp 
+	$(CXX) $(CFLAGS) -I. -MMD $(INCLUDE) -DVL_PRINTF=printf -DVM_TRACE=0 -DVM_COVERAGE=0 -DVL_DEBUG=1 -c -o branchSim.o $(SRC_DIR)/branchSim.cpp
 
 gaLib.o: $(SRC_DIR)/gaLib.cpp $(INCL_DIR)/gaLib.h $(INCL_DIR)/incl.h $(INCL_DIR)/${BENCH}Int.h $(SRC_DIR)/${BENCH}Int.cpp $(INCL_DIR)/verInclude.h
 	$(CXX) $(CFLAGS) -I. -MMD $(INCLUDE) -DVL_PRINTF=printf -DVM_TRACE=0 -DVM_COVERAGE=0 -DVL_DEBUG=1 -c -o gaLib.o $(SRC_DIR)/gaLib.cpp

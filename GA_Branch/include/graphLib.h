@@ -88,6 +88,9 @@ struct bNode_t {
 };
 
 struct brGraph_t {
+	
+	char fName[256];
+
 	vector<bNode_t> bNodes;
 	vector<bEdge_t> bEdges;
 	int_vec nodeMap;

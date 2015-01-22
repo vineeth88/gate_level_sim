@@ -110,7 +110,7 @@ int readGraph(covGraph_t& graphCov) {
 	if (!graphFile) {
 		cout << "Unable to open file " << fileName << endl;
 		//exit(-1);
-		return (1 << 15);
+		return 1;
 	}
 
 	cout << "Reading file: " << fileName << endl;
@@ -174,9 +174,10 @@ int readGraph(covGraph_t& graphCov) {
 		}
 	}
 	graphFile.close();
-
-	cout << "IF/ELSE: " << if_else_tally << endl;
-	return if_else_tally;
+	
+	return 0;
+//	cout << "IF/ELSE: " << if_else_tally << endl;
+//	return if_else_tally;
 }
 
 void covGraph_t::getPath(int branch_, vector<int>& pathVec) {
