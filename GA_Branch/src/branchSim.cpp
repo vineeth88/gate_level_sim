@@ -98,8 +98,9 @@ int readBranchGraph(covGraph_t&, brGraph_t&);
 
 void Stage1_GenerateVectors(paramObj_t*);
 
-int computeBranches(vector<int>&);
+int computeBranches(int_vec&);
 bool compCoverage(gaIndiv_t*, gaIndiv_t*);
+void printCnt(int_vec&);
 
 int main(int argc, char* argv[]) {
 
@@ -491,6 +492,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	rtlCkt->setCktState(rstStateStr);
 	
 	rtlCkt->simOneVector(rstVec);
+	rtlCkt->getBranchCounters(branch_counters);
 
 	state_t *rstState;
 	rstState = new state_t(rtlCkt, 0);
@@ -721,7 +723,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 	}
 	state_t* st = indiv->state_list[indiv->max_index];
-	startVec = indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
+	startVec = rstVec + indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
 	startPool.push_back(st);
 
 	cout << "After Round 0: " << endl
@@ -996,4 +998,14 @@ bool compCoverage(gaIndiv_t* A, gaIndiv_t* B) {
 	else 
 		return (A->max_index < B->max_index);
 
+}
+
+void printCnt(int_vec& vec_) {
+	int num_branch = 0;
+	for (uint v = 0; v < vec_.size(); ++v) {
+		cout << v << "(" << vec_[v] << ") ";
+		if (vec_[v] == 0)
+			num_branch++;
+	}
+	cout << endl << "#Branch " << NUM_BRANCH - num_branch << endl;
 }

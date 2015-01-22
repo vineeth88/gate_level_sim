@@ -10,7 +10,9 @@
 #include "lib/b01/cpp/Vtop.h"
 
 // User Defined Datatypes
-#include "vType.h"
+//#include "vType.h"
+#include "circuit.h" 
+#include "rtLevelSim.h"
 
 const int NUM_INPUT = 3;
 const int NUM_INPUT_BITS = 3;

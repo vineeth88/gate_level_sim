@@ -34,13 +34,13 @@ void rtLevelCkt :: printNextState() {}
 inline
 void rtLevelCkt :: printCurrState() {}
 
-void rtLevelCkt :: setCktState(const cktState& state) {
-	string stateStr = state.getState();
+void rtLevelCkt :: setCktState(const state_t* state) {
+	string stateStr = state->getState();
 	setCktState(stateStr);
 }
 
 void rtLevelCkt :: setCktState(const string& stateStr) {
-	string stateStr = state.getState();
+	assert(cktVar != NULL);
 	assert(stateStr.length() == (uint)numFFs);
 
 	int val = 0;
@@ -51,7 +51,7 @@ void rtLevelCkt :: setCktState(const string& stateStr) {
 	cktVar->v__DOT__curr_state = val;
 }
 
-void rtLevelCkt :: setCktOutput(const string& outStr) {
+void rtLevelCkt :: setCktOutput(string outStr) {
 	
 	int32_t val = 0;
 	for(uint i = 0; i < 2; ++i) {
@@ -87,15 +87,15 @@ string rtLevelCkt :: getCktState() const {
 	return stateVal;
 }
 
-string rtLevelCkt :: getCktOutput() const {
+string rtLevelCkt :: getOutputs() const {
 	assert(cktVar != NULL);
 
-	string stateVal = std::string(numOutputs, '0');
+	string outVal = std::string(numOutputs, '0');
 
 	int i = 1;
 	int val = (uint)(cktVar->cc_mux & 3);
 	while (val) {
-		stateVal[i] = (val & 1) + '0';
+		outVal[i] = (val & 1) + '0';
 		i--;
 		val = val >> 1;
 	}
@@ -103,20 +103,20 @@ string rtLevelCkt :: getCktOutput() const {
 	i = 3;
 	val = (uint)(cktVar->uscite & 3);
 	while (val) {
-		stateVal[i] = (val & 1) + '0';
+		outVal[i] = (val & 1) + '0';
 		i--;
 		val = val >> 1;
 	}
 	
-	stateVal[4] = (cktVar->enable_count & 1) + '0';
-	stateVal[5] = (cktVar->ackout & 1) + '0';
+	outVal[4] = (cktVar->enable_count & 1) + '0';
+	outVal[5] = (cktVar->ackout & 1) + '0';
 
-	return stateVal;
+	return outVal;
 }
 
 
 // ========================== Old interface =========================
 
-keyVal_t state_t :: getHash() {
+keyVal_t state_t :: getHash() const {
     return state_val;
 }

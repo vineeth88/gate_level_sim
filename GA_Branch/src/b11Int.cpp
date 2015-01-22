@@ -34,12 +34,12 @@ void rtLevelCkt :: printNextState() {}
 inline
 void rtLevelCkt :: printCurrState() {}
 
-void rtLevelCkt :: setCktState(const cktState& state) {
-	string stateStr = state.getState();
+void rtLevelCkt :: setCktState(const state_t* state) {
+	string stateStr = state->getState();
 	setCktState(stateStr);
 }
 	
-void rtLevelCkt :: setCktState(const string& state) {
+void rtLevelCkt :: setCktState(const string& stateStr) {
 	assert(stateStr.length() == (uint)numFFs);
 
 	int val = 0;
@@ -150,21 +150,22 @@ string rtLevelCkt :: getCktState() const {
 string rtLevelCkt :: getOutputs() const {
 	assert(cktVar != NULL);
 
-	string stateVal = std::string(numOutputs, '0');
+	string outVal = std::string(numOutputs, '0');
 
 	int i = 5;
 	int val = (uint)(cktVar->x_out & 0x3f);
 	while (val) {
-		stateVal[i] = (val & 1) + '0';
+		outVal[i] = (val & 1) + '0';
 		i--;
 		val = val >> 1;
 	}
 
-	return stateVal;
+	return outVal;
 }
 
 // ========================= Old interface ==========================
-keyVal_t state_t :: getHash() {
+
+keyVal_t state_t :: getHash() const {
     return state_val;
 }
 

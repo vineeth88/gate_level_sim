@@ -10,7 +10,8 @@
 #include "lib/b11/cpp/Vtop.h"
 
 // User Defined Datatypes
-#include "vType.h"
+#include "circuit.h"
+#include "rtLevelSim.h"
 
 const int NUM_INPUT = 3;
 const int NUM_INPUT_BITS = 8;
@@ -22,6 +23,12 @@ const int NUM_BRANCH = 32;
 const int NUM_VARS = 4;
 
 void set_input(Vtop*, const vecIn_t&);
+
+inline
+bool IsDefaultBranch(const int br) {
+	return (//(br == 20) ||
+			(br == 31));
+}
 
 inline
 void sim_reset_clock(Vtop *top)

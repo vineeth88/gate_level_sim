@@ -1,5 +1,4 @@
 #include "b07Int.h"
-#include <bitset>
 
 using namespace std;
 
@@ -40,12 +39,12 @@ void rtLevelCkt :: setCktOutput(string outStr) {
 	cktVar->punti_retta = val & 0xff;
 }
 
-void rtLevelCkt :: setCktState(const cktState& state) {
-	string stateStr = state.getState();
+void rtLevelCkt :: setCktState(const state_t* state) {
+	string stateStr = state->getState();
 	setCktState(stateStr);
 }
 	
-void rtLevelCkt :: setCktState(const string& state) {
+void rtLevelCkt :: setCktState(const string& stateStr) {
 	assert(stateStr.length() == (uint)numFFs);
 
 	int val = 0;
@@ -162,21 +161,21 @@ string rtLevelCkt :: getCktState() const {
 string rtLevelCkt :: getOutputs() const {
 	assert(cktVar != NULL);
 
-	string stateVal = std::string(numOutputs, '0');
+	string outVal = std::string(numOutputs, '0');
 
 	int i = 7;
 	int val = (uint)(cktVar->punti_retta & 0xff);
 	while (val) {
-		stateVal[i] = (val & 1) + '0';
+		outVal[i] = (val & 1) + '0';
 		i--;
 		val = val >> 1;
 	}
 
-	return stateVal;
+	return outVal;
 }
 
 // ========================== Old interface =========================
-keyVal_t state_t :: getHash() {
+keyVal_t state_t :: getHash() const {
 	// Memory is not considered in the control variables
     return state_val.substr(0,43);
 }

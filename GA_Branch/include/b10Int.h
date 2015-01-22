@@ -11,6 +11,7 @@
 
 // User Defined Datatypes
 #include "circuit.h"
+#include "rtLevelSim.h"
 
 const int NUM_INPUT = 9;
 const int NUM_INPUT_BITS = 12;
@@ -24,16 +25,19 @@ const int NUM_VARS = 7;
 
 void set_input(Vtop*, const vecIn_t&);
 
+inline 
+bool IsDefaultBranch(const int br) {
+	return (br == 30);
+}
+
 inline
-void sim_reset_clock(Vtop *top)
-{        
+void sim_reset_clock(Vtop *top) {        
     top->reset = 0;     // b circuit
     top->clock = 0;
 }
 
 inline
-void ToggleClk(Vtop *top)
-{
+void ToggleClk(Vtop *top) {
     top->clock = !top->clock; // Toggle clock 
 }
 
