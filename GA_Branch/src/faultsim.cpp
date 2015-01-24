@@ -399,6 +399,7 @@ void gateLevelCkt::writeOutput(FILE *detFile, FILE *uflFile, FILE *eFile)
 }
 
 // main()
+
 main(int argc, char *argv[])
 {
 	FILE *vecFile, *detFile, *ndetFile, *uflFile, *frsFile, *exFile, *sigFile;
@@ -447,11 +448,12 @@ main(int argc, char *argv[])
 					GEN_FSIG = 1;
 				default:
 					fprintf(stderr, "Invalid option: %s\n", argv[1]);
-					fprintf(stderr, "Usage: %s [-dnio] <ckt> <type>\n", argv[0]);
+					fprintf(stderr, "Usage: %s [-dniof] <ckt> <type>\n", argv[0]);
 					fprintf(stderr, "The -d option is for dumping detected faults on the screen.\n");
 					fprintf(stderr, "The -n option is for NO FAULT DROPPING.\n");
 					fprintf(stderr, "The -i option is to begin the circuit in a state in *.init.\n");
-					fprintf(stderr, "and o option is to OBSERVE fault-free outputs.\n");
+					fprintf(stderr, "and -o option is to OBSERVE fault-free outputs.\n");
+					fprintf(stderr, "The -f option is to dump the faulty states into file. (.fsig)\n");
 					exit(-1);
 					break;
 			} 	// switch

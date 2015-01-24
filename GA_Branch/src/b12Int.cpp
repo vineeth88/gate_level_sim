@@ -7,10 +7,10 @@ using namespace std;
 void set_input(Vtop *top, const vecIn_t& input) {
 
 	assert(input.length() == (uint)NUM_INPUT_BITS);
-    top->start 	= input[0] - '0';
-	top->k 	= 0; 
-	for(uint i = 0; i < 4; ++i) {
-		top->k = ((top->k << 1) | ((input[1+i] - '0')& 1));
+    top->start 	= (input[0] - '0') & 1;
+	top->k = 0; 
+	for(uint i = 1; i < 5; ++i) {
+		top->k = ((top->k << 1) | ((input[i] - '0') & 1));
 	}
 	top->reset = (input[5] - '0') & 1;
 }
@@ -127,7 +127,7 @@ void rtLevelCkt :: setCktState(const string& stateStr) {
 	for(int i = 0; i < 64; ++i) {
 		val = ((val << 1) | ((stateStr[22+i] - '0') & 0x1));
 		if (i%2) {
-			cktVar->v__DOT__memory[31-i/2] = val;
+			cktVar->v__DOT__memory[i/2] = val & 0x3;
 			val = 0;
 		}
 	}
@@ -135,7 +135,7 @@ void rtLevelCkt :: setCktState(const string& stateStr) {
 }
 
 void rtLevelCkt :: setCktOutput(string outStr) {
-	assert(outStr.length() == NUM_OUTPUT_BITS);
+	assert(outStr.length() == (uint)NUM_OUTPUT_BITS);
 	cktVar->nloss = (outStr[0] - '0') & 1;
 	int val = 0;
 	for(uint i = 1; i < 5; ++i)
@@ -264,7 +264,7 @@ string rtLevelCkt :: getCktState() const {
 
 	for (int j = 0; j < 32; ++j) {
 		i = 23 + j*2;
-		val = (uint)(cktVar->v__DOT__memory[31-j] & 0x3);
+		val = (uint)(cktVar->v__DOT__memory[j] & 0x3);
 		while (val) {
 			stateVal[i] = (val & 0x1) + '0';
 			i--;

@@ -9,6 +9,7 @@
 
 // Defines
 #define RANDOM_SEED
+#define GA_FIND_TOP_INDIV
 
 // ==================== Global Variables ============================
 int BRANCH_COV_ONLY = 1;
@@ -23,7 +24,18 @@ int_vec	exclBranchList;
 int_vec IsBranchLeaf;
 int_vec BranchNumTries;
 
-// ===================== Class definitions ==========================
+#ifdef MEM_ALLOC_DBG_ON
+int gaIndiv_t::mem_alloc_cnt = 0;
+int state_t::mem_alloc_cnt = 0;
+#endif
+
+// ===================== Typedefs and Class definitions =====================
+typedef pair<int, int> nodePair_t;
+typedef map<nodePair_t, string> pathMap_t;
+
+typedef map<string, int> stateIdxMap_t;
+typedef stateIdxMap_t::iterator stateIdxMap_iter;
+
 class paramObj_t { 
 	
 	public:
@@ -41,7 +53,7 @@ class paramObj_t {
 
 		vecIn_t		inputVec;
 		state_pVec	stateList;
-//		stateMap_t	stateTable;
+	stateIdxMap_t	stateTable;
 		int 		startIdx;		// Start index of stage 2
 
 		int_vec		branchHit;
@@ -66,6 +78,8 @@ class paramObj_t {
 			INDIV_LEN_2 = 20;
 			MAX_ROUNDS_2 = 100;
 			MAX_TRIES_2 = 20;
+
+			startIdx = 0;
 
 			branchHit = int_vec(NUM_BRANCH, 0);
 			lastBranchHit = int_vec(NUM_BRANCH, 0);
@@ -95,8 +109,6 @@ class paramObj_t {
 		void readParam();
 };
 
-typedef pair<int, int> nodePair_t;
-typedef map<nodePair_t, string> pathMap_t;
 
 // ===================== Function declarations ======================
 void readExclBranchList(char[]);
@@ -109,8 +121,10 @@ string getPathBFS(brGraph_t*, int, int);
 
 int computeBranches(int_vec&);
 bool compCoverage(gaIndiv_t*, gaIndiv_t*);
+int compHammingDist(string, string);
 void printCnt(int_vec&);
 void printVec(int_vec&);
+void PrintVectorSet(const vecIn_t&);
 
 int main(int argc, char* argv[]) {
 
@@ -220,9 +234,54 @@ int main(int argc, char* argv[]) {
 
 	if (BRGRAPH_PRESENT)
 		Stage2_GenerateVectors(paramObj);
+	
+	if (BRANCH_COV_ONLY) {
+		// Print vector to file
+		#ifdef MEM_ALLOC_DBG_ON
+		cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
+			 << "state_t:    " << state_t::mem_alloc_cnt << endl;
+		#endif
 
+		PrintVectorSet(paramObj->inputVec);
+		delete paramObj;
+		return 0;
+	}
+
+	/* Fault Simulate vectors */
+	for (int idx = 0; idx < paramObj->stateList.size(); ++idx) {
+		string stateStr = paramObj->stateList[idx]->getState();
+		paramObj->stateTable.insert(make_pair(stateStr, idx));
+	}
+	
+	int cnt = 5;
+	while (--cnt) {
+		paramObj->startIdx = paramObj->stateList.size();
+
+		Stage1_GenerateVectors(paramObj);
+		if (BRGRAPH_PRESENT)
+			Stage2_GenerateVectors(paramObj);
+
+		#ifdef MEM_ALLOC_DBG_ON
+		cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
+			 << "state_t:    " << state_t::mem_alloc_cnt << endl;
+		#endif
+	}
+//	paramObj->startIdx = paramObj->stateList.size();
+//
+//	Stage1_GenerateVectors(paramObj);
+//	if (BRGRAPH_PRESENT)
+//		Stage2_GenerateVectors(paramObj);
+
+	PrintVectorSet(paramObj->inputVec);
 	delete paramObj;
+
+	#ifdef MEM_ALLOC_DBG_ON
+	cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
+		 << "state_t:    " << state_t::mem_alloc_cnt << endl;
+	#endif
+	
 	return 0;
+	
 }
 
 void paramObj_t :: readParam () {
@@ -475,7 +534,6 @@ int readBranchGraph(covGraph_t& graphCov, brGraph_t& branchGraph) {
 	return true;
 }
 
-
 void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 	/* Parameters */
@@ -483,8 +541,11 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	int POP_SIZE = paramObj->POP_SIZE_1;
 	int VEC_LEN	= paramObj->INDIV_LEN_1 / NUM_INPUT_BITS;
 	int MAX_ROUNDS = paramObj->MAX_ROUNDS_1;
+	int startIdx = paramObj->startIdx;
 
-	double WT_FIT_STATE = 0.0;
+	int vec_offset = 0;
+
+	double WT_FIT_STATE = 0.4;
 	double WT_FIT_COV = 0.3;
 	double WT_FIT_BRANCH = 0.7;
 
@@ -503,7 +564,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	rstVec[NUM_INPUT_BITS-1] = '1';
 	string rstStateStr (NUM_STATE_BITS, '0');
 	rtlCkt->setCktState(rstStateStr);
-	
+	rtlCkt->resetCounters();
 	rtlCkt->simOneVector(rstVec);
 	rtlCkt->getBranchCounters(branch_counters);
 
@@ -528,6 +589,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 	gaIndiv_pVec topIndiv_vec;
 	bool gaTerminate = false;
+
 	//	int last_gen = 0;
 	for (int gen = 0; !gaTerminate && (gen < NUM_GEN); ++gen) {
 
@@ -610,6 +672,17 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			/* Fitness for states reached 	*/
 			fitness_t fitness_state = 0;
+			if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+				for (uint st_idx = 0; st_idx < indiv->state_list.size(); ++st_idx) {
+					int offset = vec_offset + st_idx;
+					if (offset >= st_idx)
+						break;
+					string currStr = (indiv->state_list[st_idx])->getState();
+					string prevStr = paramObj->stateList[offset]->getState();
+					/* Compute hamming distance */
+					fitness_state -= compHammingDist(currStr, prevStr);
+				}
+			}
 
 			/* Combining all fitness values	*/
 			indiv->fitness 
@@ -617,7 +690,6 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 				+ (fitness_branch * WT_FIT_BRANCH)
 				+ (fitness_state * WT_FIT_STATE);
 		}	
-
 
 		/* Terminate GA Condition:
 		   - gen == NUM_GEN
@@ -740,6 +812,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	startVec = rstVec + indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
 	startPool.push_back(st);
 
+	vec_offset += 1 + indiv->max_index + 1;
+	cout << "Size: " << startVec.length() << " Off: " << vec_offset << endl;
+	assert(startVec.size() == (vec_offset * NUM_INPUT_BITS));
+
 	cout << "After Round 0: " << endl
 		 << st->getState()
 		 << " --------------- " << endl;
@@ -846,6 +922,17 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 				/* Fitness for states reached 	*/
 				fitness_t fitness_state = 0;
+				if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+					for (uint st_idx = 0; st_idx < indiv->state_list.size(); ++st_idx) {
+						int offset = vec_offset + st_idx;
+						if (offset >= st_idx)
+							break;
+						string currStr = (indiv->state_list[st_idx])->getState();
+						string prevStr = paramObj->stateList[offset]->getState();
+						/* Compute hamming distance */
+						fitness_state -= compHammingDist(currStr, prevStr);
+					}
+				}
 
 				/* Combining all fitness values	*/
 				indiv->fitness 
@@ -853,11 +940,6 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 					+ (fitness_branch * WT_FIT_BRANCH)
 					+ (fitness_state * WT_FIT_STATE);
 
-				//				cout << "Fitness (" << ind << ") " 
-				//					 << indiv->fitness 
-				//					 << " [" << fitness_cov 
-				//					 << ", " << fitness_branch 
-				//					 << "]" << endl << endl;
 			}	
 
 
@@ -944,9 +1026,13 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		Rnd_terminate = !(new_start_state || new_branch_) || (round == MAX_ROUNDS-1) || (all_done_2);
 
 		startVec += indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
+		
+		vec_offset += indiv->max_index + 1;
+		cout << "Size: " << startVec.size() << " Off: " << vec_offset << endl;
+		assert(startVec.size() == (NUM_INPUT_BITS*vec_offset));
 
 		for (state_pVec_iter st = startPool.begin(); st != startPool.end(); ++st)
-			if (*st == NULL) {
+			if (*st != NULL) {
 				delete *st;
 				*st = NULL;
 			}
@@ -981,15 +1067,34 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			rstState);
 	indiv_->input_vec = startVec;
 	indiv_->simCkt(rtlCkt);
-
-	paramObj->inputVec = startVec;
+	
 	paramObj->branchHit = branch_cov;
-	paramObj->stateList = indiv_->state_list;
 	paramObj->branch_index = (indiv_->state_list.back())->branch_index;
+	if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+		paramObj->inputVec += startVec;
+		size_t vecSize = paramObj->stateList.size() 
+							+ indiv_->state_list.size();
+		paramObj->stateList.reserve(vecSize);
+		paramObj->stateList.insert(paramObj->stateList.end(), 
+									indiv_->state_list.begin(), 
+									indiv_->state_list.end());
+	}
+	else {
+		paramObj->stateList = indiv_->state_list;
+		paramObj->inputVec = startVec;
+	}
+	indiv_->state_list = state_pVec(indiv_->vec_length, NULL);
 
+	cout << paramObj->stateList.size() << endl
+		 << startIdx << endl
+		 << vec_offset << endl;
+	assert (paramObj->stateList.size() == (startIdx + vec_offset));
 	//	cout << "Branches covered after Stage 1: " << endl;
 	//	printCnt(paramObj->branchHit);
-	
+//	if ((BRANCH_COV_ONLY == 0) && (startIdx > 0))
+//		paramObj->startIdx += vec_offset;
+
+	delete indiv_;
 	delete rstState;
 	delete rtlCkt;
 }
@@ -1319,12 +1424,15 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 	rtLevelCkt* rtlCkt = paramObj->rtlCkt;
 	int_vec &branchHit = paramObj->branchHit;
 	int_vec &lastBranchHit = paramObj->lastBranchHit;
-	
+	int startIdx = paramObj->startIdx;
+
 	lastBranchHit = int_vec(NUM_BRANCH, 0);
 
 	state_pVec startPool;
 	state_t* start_state = paramObj->stateList.back();
 	startPool.push_back(start_state);
+
+	int vec_offset = paramObj->stateList.size() - startIdx;
 
 	rtlCkt->setCktState(start_state);
 	rtlCkt->resetCounters();
@@ -1335,6 +1443,7 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 	int OUT_EDGE_FITNESS	= 100;
 	int UNIMPT_FITNESS		= 0;
 
+	int WT_NEW_STATE = -20;
 	/*	Run GA	*/
 	gaPopulation_t stage2Pop(POP_SIZE, VEC_LEN);
 	stage2Pop.initPopulation(startPool);
@@ -1368,12 +1477,22 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 			int_vec state_fit_vec;
 			fitness_t prev_fit = 0;
 
+			fitness_t fitness_state = 0;
+			uint st_idx = 0;
 			for (state_pVec_iter st = indiv->state_list.begin();
-					st != indiv->state_list.end(); ++st) {
+					st != indiv->state_list.end(); ++st, ++st_idx) {
 
 				/* Compute	- target edge [nxt_edge]
 							- target node [nxt_node]
 							- set of branches in self loop	*/
+
+				if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+					int offset = vec_offset + st_idx;
+					string currStr = (*st)->getState();
+					string prevStr = paramObj->stateList[offset]->getState();
+					/* Compute hamming distance */
+					fitness_state += compHammingDist(currStr, prevStr);
+				}
 
 				bNode_t* curr_node_obj = branchGraph->getNode(curr_node);
 				assert(curr_node_obj);
@@ -1463,7 +1582,7 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 //			cout << endl;
 //			indiv->printIndiv(0);
 
-			indiv->fitness = 0;			
+			indiv->fitness += WT_NEW_STATE * fitness_state;			
 			int max_ind = -1, max_fit = (2 << 20);
 			for (int it = 0; (uint)it < state_fit_vec.size(); ++it) {
 				if (max_fit >= state_fit_vec[it]) {
@@ -1472,6 +1591,7 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 				}
 				indiv->fitness += state_fit_vec[it];
 			}
+
 			if (max_ind != -1)
 				indiv->max_index = max_ind;
 
@@ -1652,6 +1772,15 @@ bool compCoverage(gaIndiv_t* A, gaIndiv_t* B) {
 
 }
 
+int compHammingDist(string strA, string strB) {
+	assert(strA.length() == strB.length());
+	int hamm_dist = 0;
+	for (int idx = 0; idx < strA.length(); ++idx) {
+		hamm_dist += strA[idx] ^ strB[idx];
+	}
+	return hamm_dist;
+}
+
 void printCnt(int_vec& vec_) {
 	int num_branch = 0;
 	for (uint v = 0; v < vec_.size(); ++v) {
@@ -1666,4 +1795,26 @@ void printVec(int_vec& vec_) {
 	for (int_vec_iter vt = vec_.begin();
 			vt != vec_.end(); ++vt)
 		cout << *vt << " ";
+}
+
+void PrintVectorSet(const vecIn_t& inputVec) {
+
+	ofstream vecOutFile;
+	char vecName[100];
+	
+	sprintf(vecName, "%s_%d.vec", benchCkt, (rand() % 10000));
+
+	cout << "Writing vectors into file -> " << vecName << endl; 
+	vecOutFile.open(vecName, ios::out);
+	vecOutFile << NUM_INPUT_BITS << endl;
+
+	for (uint i = 0; i < inputVec.length(); i++) {
+		vecOutFile << inputVec[i];
+		if ((i+1) % NUM_INPUT_BITS == 0) {
+			vecOutFile << endl;
+		}
+	}
+
+	vecOutFile << "END" << endl;
+	vecOutFile.close();
 }

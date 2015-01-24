@@ -8,7 +8,7 @@ rtLevelCkt :: rtLevelCkt(Vtop* cktParam) {
 	this->numInputs = NUM_INPUT_BITS;	// Inputs + Reset
 	this->numOutputs = NUM_OUTPUT_BITS;
 	this->numFFs = NUM_STATE_BITS;
-
+	
 }
 
 void rtLevelCkt :: setVeriObj(Vtop* ckt) {
@@ -41,8 +41,7 @@ void rtLevelCkt :: getCoverage(int_vec& branch_vec) const {
 
 int rtLevelCkt :: getBranchCounters(int_vec& branchHit) const {
 	uint numBranchHit = 0;
-	if (branchHit.size() != (uint)NUM_BRANCH)
-		branchHit = vector<int>(NUM_BRANCH);
+	branchHit = vector<int>(NUM_BRANCH, 0);
 
     for (int ind = 0; ind < NUM_BRANCH; ++ind) {
 		branchHit[ind] = cktVar->__VlSymsp->__Vcoverage[ind];

@@ -49,19 +49,6 @@ void rtLevelCkt :: printCurrState() {}
 inline
 void rtLevelCkt :: printNextState() {}
 
-void rtLevelCkt :: setCktOutput(string outStr) {
-	assert(outStr.length() == NUM_OUTPUT_BITS);
-	
-	cktVar->cts = (outStr[0] - '0') & 1;
-	cktVar->ctr = (outStr[1] - '0') & 1;
-
-	int val = 0;
-	for(uint i = 2; i < outStr.length(); ++i)
-		val = ((val << 1) | ((outStr[i] - '0') & 0x1));
-
-	cktVar->v_out = val & 0xf;
-}
-
 void rtLevelCkt :: setCktState(const state_t* state) {
 	string stateStr = state->getState();
 	setCktState(stateStr);
@@ -112,6 +99,19 @@ void rtLevelCkt :: setCktState(const string& stateStr) {
 	}
 }
 
+void rtLevelCkt :: setCktOutput(string outStr) {
+	assert(outStr.length() == NUM_OUTPUT_BITS);
+	
+	cktVar->cts = (outStr[0] - '0') & 1;
+	cktVar->ctr = (outStr[1] - '0') & 1;
+
+	int val = 0;
+	for(uint i = 2; i < outStr.length(); ++i)
+		val = ((val << 1) | ((outStr[i] - '0') & 0x1));
+
+	cktVar->v_out = val & 0xf;
+}
+
 string rtLevelCkt :: getCktState() const {
 	
 	assert(cktVar != NULL);
@@ -152,19 +152,19 @@ string rtLevelCkt :: getCktState() const {
 string rtLevelCkt :: getOutputs() const {
 	assert(cktVar != NULL);
 
-	string outVal = std::string(numOutputs, '0');
+	string outStr = std::string(numOutputs, '0');
 
-	outVal[0] = (cktVar->cts & 1) + '0';
-	outVal[1] = (cktVar->ctr & 1) + '0';
+	outStr[0] = (cktVar->cts & 1) + '0';
+	outStr[1] = (cktVar->ctr & 1) + '0';
 	int i = 5;
 	int val = (uint)(cktVar->v_out & 0xf);
 	while (val) {
-		outVal[i] = (val & 1) + '0';
+		outStr[i] = (val & 1) + '0';
 		i--;
 		val = val >> 1;
 	}
 
-	return outVal;
+	return outStr;
 }
 
 // ========================== Old Interface =========================

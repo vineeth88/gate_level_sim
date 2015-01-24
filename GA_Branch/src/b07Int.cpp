@@ -29,16 +29,6 @@ void rtLevelCkt :: printNextState() {}
 inline
 void rtLevelCkt :: printCurrState() {}
 
-void rtLevelCkt :: setCktOutput(string outStr) {
-	assert(outStr.length() == NUM_OUTPUT_BITS);
-	
-	int val = 0;
-	for(uint i = 0; i < outStr.length(); ++i)
-		val = ((val << 1) | ((outStr[i] - '0') & 1));
-
-	cktVar->punti_retta = val & 0xff;
-}
-
 void rtLevelCkt :: setCktState(const state_t* state) {
 	string stateStr = state->getState();
 	setCktState(stateStr);
@@ -48,7 +38,7 @@ void rtLevelCkt :: setCktState(const string& stateStr) {
 	assert(stateStr.length() == (uint)numFFs);
 
 	int val = 0;
-	for(uint i = 0; i < 43; ++i) {
+	for(uint i = 0; i < stateStr.length(); ++i) {
 		val = ((val << 1) | ((stateStr[i] - '0') & 0x1));
 
 		switch(i+1) {
@@ -72,7 +62,7 @@ void rtLevelCkt :: setCktState(const string& stateStr) {
 						val = 0;
 						break;
 
-			case 42:	cktVar->v__DOT__t = val << 1;
+			case 42:	cktVar->v__DOT__t = (val << 1);
 						val = 0;
 						break;
 
@@ -97,6 +87,16 @@ void rtLevelCkt :: setCktState(const string& stateStr) {
 	cktVar->v__DOT__mem[0xe] = 0;
 	cktVar->v__DOT__mem[0xf] = 2;
 
+}
+
+void rtLevelCkt :: setCktOutput(string outStr) {
+	assert(outStr.length() == NUM_OUTPUT_BITS);
+	
+	int val = 0;
+	for(uint i = 0; i < outStr.length(); ++i)
+		val = ((val << 1) | ((outStr[i] - '0') & 1));
+
+	cktVar->punti_retta = val & 0xff;
 }
 
 string rtLevelCkt :: getCktState() const {
@@ -177,6 +177,6 @@ string rtLevelCkt :: getOutputs() const {
 // ========================== Old interface =========================
 keyVal_t state_t :: getHash() const {
 	// Memory is not considered in the control variables
-    return state_val.substr(0,43);
+    return state_val;
 }
 
