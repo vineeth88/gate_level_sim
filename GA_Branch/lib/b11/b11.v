@@ -55,7 +55,7 @@ reg[5:0] r_in;
 reg[3:0] stato;
 //reg[6:0] cont;
 reg[5:0] cont;
-reg[8:0] cont1;
+reg signed [8:0] cont1;
 //reg[9:0] cont1;
 //integer cont1;
 
@@ -131,7 +131,7 @@ begin
 
                         `s_rsum:
                         begin
-                                if (cont1 > 26 && (cont1[8] == 0))
+                                if (cont1 > 26)
                                 begin
                                     cont1 = cont1 - 26;
                                     stato = `s_rsum;
@@ -142,7 +142,7 @@ begin
 
                         `s_rsot:
                         begin
-                                if (cont1 > 63 && (cont1[8] == 0))
+                                if (cont1 > 63)
                                 begin
                                     cont1 = cont1 + 26;
                                     stato = `s_rsot;
@@ -166,7 +166,7 @@ begin
 
                         `s_dataout:
                      	begin
-						  		if (cont1[8])
+						  		if (cont1 < 0)
                    					x_out <= -cont1[5:0];
                  				else
                    					x_out <= cont1[5:0];

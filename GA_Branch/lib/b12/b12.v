@@ -230,14 +230,14 @@ module b12(
 	    if (reset)
 	      begin
 		     count = 0;
-		     num = 0;
+		     num <= 0;
 	      end
 	    else    
 	      begin
 		     // count = (count + 1) % (2**COD_COLOR) ;
 		     // num = count;
 		     count = (count + 1) % (2**COD_COLOR) ;
-		     num = count;
+		     num <= count;
 	      end
      end
 
@@ -248,14 +248,14 @@ module b12(
 	    if (reset)
 	      begin
              integer mar;
-		     data_out = 0;
+		     data_out <= 0;
 		     for(mar = 0; mar <= SIZE_MEM - 1; mar = mar + 1)
 		       memory[mar] = 0;
 //		       memory[mar] = 0;
 	      end
 	    else
 	      begin
-		     data_out = memory[address];
+		     data_out <= memory[address];
 		     if (wr)
 //			   memory[address] = data_in;
 			   memory[address] = data_in;

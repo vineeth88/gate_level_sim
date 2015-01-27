@@ -45,6 +45,7 @@ int main(int argc, char* argv[]) {
 			branch_counters[*it]++;
 			cout << *it << " ";
 		}
+		cout << endl;
 	}
 
 	int num = printCnt(branch_counters);

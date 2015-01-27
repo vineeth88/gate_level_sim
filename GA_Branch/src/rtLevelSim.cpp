@@ -72,10 +72,12 @@ void rtLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 }
 
 void rtLevelCkt :: simMultiVector(const vecIn_t& inputVec) {
+	
+	sim_reset_clock(cktVar);
 
     int time_idx = 0;                                                           
-    int cycle_cnt = 0;
 	int vec_len = (inputVec.length()/NUM_INPUT_BITS);
+	int cycle_cnt = 0;
 
     while ((time_idx < (2*vec_len)) && !Verilated::gotFinish()) {
         if (cktVar->clock == 0) {
@@ -91,6 +93,7 @@ void rtLevelCkt :: simMultiVector(const vecIn_t& inputVec) {
 
 void rtLevelCkt :: simNRandomVec(int N) {
     int time_idx = 0;                                                           
+	sim_reset_clock(cktVar);
 
 	vecIn_t vecIn;
     while ((time_idx < (2*N)) && !Verilated::gotFinish()) {

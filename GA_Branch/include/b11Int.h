@@ -19,7 +19,7 @@ const int NUM_OUTPUT = 1;
 const int NUM_OUTPUT_BITS = 6;
 const int NUM_STATE_BITS = 25;
 
-const int NUM_BRANCH = 32;
+const int NUM_BRANCH = 33;
 const int NUM_VARS = 4;
 
 void set_input(Vtop*, const vecIn_t&);

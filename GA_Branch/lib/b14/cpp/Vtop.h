@@ -33,32 +33,31 @@ VL_MODULE(Vtop) {
     
     // LOCAL SIGNALS
     // Internals; generally not touched by application code
-    VL_SIG8(v__DOT__process_1_B,0,0);
-    VL_SIG8(v__DOT__process_1_mf,1,0);
-    VL_SIG8(v__DOT__process_1_df,2,0);
-    VL_SIG8(v__DOT__process_1_cf,0,0);
-    VL_SIG8(v__DOT__process_1_ff,3,0);
-    VL_SIG8(v__DOT__process_1_state,0,0);
-    VL_SIG8(v__DOT__process_1_s,1,0);
+    VL_SIG8(v__DOT__B,0,0);
+    VL_SIG8(v__DOT__mf,1,0);
+    VL_SIG8(v__DOT__df,2,0);
+    VL_SIG8(v__DOT__cf,0,0);
+    VL_SIG8(v__DOT__ff,3,0);
+    VL_SIG8(v__DOT__state,0,0);
+    VL_SIG8(v__DOT__s,1,0);
     //char	__VpadToAlign27[1];
-    VL_SIG(v__DOT__process_1_reg0,31,0);
-    VL_SIG(v__DOT__process_1_reg1,31,0);
-    VL_SIG(v__DOT__process_1_reg2,31,0);
-    VL_SIG(v__DOT__process_1_reg3,31,0);
-    VL_SIG(v__DOT__process_1_MAR,31,0);
-    VL_SIG(v__DOT__process_1_MBR,31,0);
-    VL_SIG(v__DOT__process_1_tail,31,0);
-    VL_SIG(v__DOT__process_1_IR,31,0);
-    VL_SIG(v__DOT__process_1_r,31,0);
-    VL_SIG(v__DOT__process_1_m,31,0);
-    VL_SIG(v__DOT__process_1_t,31,0);
-    VL_SIG(v__DOT__process_1_d,31,0);
+    VL_SIG(v__DOT__reg0,31,0);
+    VL_SIG(v__DOT__reg1,31,0);
+    VL_SIG(v__DOT__reg2,31,0);
+    VL_SIG(v__DOT__reg3,31,0);
+    VL_SIG(v__DOT__MAR,31,0);
+    VL_SIG(v__DOT__MBR,31,0);
+    VL_SIG(v__DOT__tail,31,0);
+    VL_SIG(v__DOT__IR,31,0);
+    VL_SIG(v__DOT__r,31,0);
+    VL_SIG(v__DOT__m,31,0);
+    VL_SIG(v__DOT__t,31,0);
+    VL_SIG(v__DOT__d,31,0);
     
     // LOCAL VARIABLES
     // Internals; generally not touched by application code
     VL_SIG8(__Vclklast__TOP__clock,0,0);
-    VL_SIG8(__Vclklast__TOP__reset,0,0);
-    //char	__VpadToAlign82[2];
+    //char	__VpadToAlign81[3];
     
     // INTERNAL VARIABLES
     // Internals; generally not touched by application code

@@ -213,64 +213,6 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
     VL_DEBUG_IF(VL_PRINTF("    Vtop::_sequent__TOP__1\n"); );
     Vtop* __restrict vlTOPp VL_ATTR_UNUSED = vlSymsp->TOPp;
     // Body
-    // ALWAYS at b12.v:228
-    if (vlTOPp->reset) {
-	++(vlSymsp->__Vcoverage[23]);
-	vlTOPp->v__DOT__count = 0;
-	vlTOPp->v__DOT__num = 0;
-    } else {
-	vlTOPp->v__DOT__count = (3 & VL_MODDIV_III(32, 
-						   ((IData)(1) 
-						    + (IData)(vlTOPp->v__DOT__count)), (IData)(4)));
-	++(vlSymsp->__Vcoverage[24]);
-	vlTOPp->v__DOT__num = vlTOPp->v__DOT__count;
-    }
-    // ALWAYS at b12.v:246
-    if (vlTOPp->reset) {
-	++(vlSymsp->__Vcoverage[25]);
-	vlTOPp->v__DOT__data_out = 0;
-	vlTOPp->v__DOT__memory[0] = 0;
-	vlTOPp->v__DOT__memory[1] = 0;
-	vlTOPp->v__DOT__memory[2] = 0;
-	vlTOPp->v__DOT__memory[3] = 0;
-	vlTOPp->v__DOT__memory[4] = 0;
-	vlTOPp->v__DOT__memory[5] = 0;
-	vlTOPp->v__DOT__memory[6] = 0;
-	vlTOPp->v__DOT__memory[7] = 0;
-	vlTOPp->v__DOT__memory[8] = 0;
-	vlTOPp->v__DOT__memory[9] = 0;
-	vlTOPp->v__DOT__memory[0xa] = 0;
-	vlTOPp->v__DOT__memory[0xb] = 0;
-	vlTOPp->v__DOT__memory[0xc] = 0;
-	vlTOPp->v__DOT__memory[0xd] = 0;
-	vlTOPp->v__DOT__memory[0xe] = 0;
-	vlTOPp->v__DOT__memory[0xf] = 0;
-	vlTOPp->v__DOT__memory[0x10] = 0;
-	vlTOPp->v__DOT__memory[0x11] = 0;
-	vlTOPp->v__DOT__memory[0x12] = 0;
-	vlTOPp->v__DOT__memory[0x13] = 0;
-	vlTOPp->v__DOT__memory[0x14] = 0;
-	vlTOPp->v__DOT__memory[0x15] = 0;
-	vlTOPp->v__DOT__memory[0x16] = 0;
-	vlTOPp->v__DOT__memory[0x17] = 0;
-	vlTOPp->v__DOT__memory[0x18] = 0;
-	vlTOPp->v__DOT__memory[0x19] = 0;
-	vlTOPp->v__DOT__memory[0x1a] = 0;
-	vlTOPp->v__DOT__memory[0x1b] = 0;
-	vlTOPp->v__DOT__memory[0x1c] = 0;
-	vlTOPp->v__DOT__memory[0x1d] = 0;
-	vlTOPp->v__DOT__memory[0x1e] = 0;
-	vlTOPp->v__DOT__memory[0x1f] = 0;
-    } else {
-	++(vlSymsp->__Vcoverage[27]);
-	vlTOPp->v__DOT__data_out = (IData)(vlTOPp->v__DOT__memory)
-	    [(IData)(vlTOPp->v__DOT__address)];
-	if (vlTOPp->v__DOT__wr) {
-	    ++(vlSymsp->__Vcoverage[26]);
-	    vlTOPp->v__DOT__memory[(IData)(vlTOPp->v__DOT__address)] 
-		= vlTOPp->v__DOT__data_in;
-	}
-    }
     // ALWAYS at b12.v:129
     if (vlTOPp->reset) {
 	++(vlSymsp->__Vcoverage[0]);
@@ -916,6 +858,64 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 		    }
 		}
 	    }
+	}
+    }
+    // ALWAYS at b12.v:228
+    if (vlTOPp->reset) {
+	++(vlSymsp->__Vcoverage[23]);
+	vlTOPp->v__DOT__count = 0;
+	vlTOPp->v__DOT__num = 0;
+    } else {
+	vlTOPp->v__DOT__count = (3 & VL_MODDIV_III(32, 
+						   ((IData)(1) 
+						    + (IData)(vlTOPp->v__DOT__count)), (IData)(4)));
+	++(vlSymsp->__Vcoverage[24]);
+	vlTOPp->v__DOT__num = vlTOPp->v__DOT__count;
+    }
+    // ALWAYS at b12.v:246
+    if (vlTOPp->reset) {
+	++(vlSymsp->__Vcoverage[25]);
+	vlTOPp->v__DOT__memory[0] = 0;
+	vlTOPp->v__DOT__data_out = 0;
+	vlTOPp->v__DOT__memory[1] = 0;
+	vlTOPp->v__DOT__memory[2] = 0;
+	vlTOPp->v__DOT__memory[3] = 0;
+	vlTOPp->v__DOT__memory[4] = 0;
+	vlTOPp->v__DOT__memory[5] = 0;
+	vlTOPp->v__DOT__memory[6] = 0;
+	vlTOPp->v__DOT__memory[7] = 0;
+	vlTOPp->v__DOT__memory[8] = 0;
+	vlTOPp->v__DOT__memory[9] = 0;
+	vlTOPp->v__DOT__memory[0xa] = 0;
+	vlTOPp->v__DOT__memory[0xb] = 0;
+	vlTOPp->v__DOT__memory[0xc] = 0;
+	vlTOPp->v__DOT__memory[0xd] = 0;
+	vlTOPp->v__DOT__memory[0xe] = 0;
+	vlTOPp->v__DOT__memory[0xf] = 0;
+	vlTOPp->v__DOT__memory[0x10] = 0;
+	vlTOPp->v__DOT__memory[0x11] = 0;
+	vlTOPp->v__DOT__memory[0x12] = 0;
+	vlTOPp->v__DOT__memory[0x13] = 0;
+	vlTOPp->v__DOT__memory[0x14] = 0;
+	vlTOPp->v__DOT__memory[0x15] = 0;
+	vlTOPp->v__DOT__memory[0x16] = 0;
+	vlTOPp->v__DOT__memory[0x17] = 0;
+	vlTOPp->v__DOT__memory[0x18] = 0;
+	vlTOPp->v__DOT__memory[0x19] = 0;
+	vlTOPp->v__DOT__memory[0x1a] = 0;
+	vlTOPp->v__DOT__memory[0x1b] = 0;
+	vlTOPp->v__DOT__memory[0x1c] = 0;
+	vlTOPp->v__DOT__memory[0x1d] = 0;
+	vlTOPp->v__DOT__memory[0x1e] = 0;
+	vlTOPp->v__DOT__memory[0x1f] = 0;
+    } else {
+	++(vlSymsp->__Vcoverage[27]);
+	vlTOPp->v__DOT__data_out = (IData)(vlTOPp->v__DOT__memory)
+	    [(IData)(vlTOPp->v__DOT__address)];
+	if (vlTOPp->v__DOT__wr) {
+	    ++(vlSymsp->__Vcoverage[26]);
+	    vlTOPp->v__DOT__memory[(IData)(vlTOPp->v__DOT__address)] 
+		= vlTOPp->v__DOT__data_in;
 	}
     }
 }

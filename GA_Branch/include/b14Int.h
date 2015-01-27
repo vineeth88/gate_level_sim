@@ -11,6 +11,7 @@
 
 // User Defined Datatypes
 #include "circuit.h"
+#include "rtLevelSim.h"
 
 const int NUM_INPUT = 2;
 const int NUM_INPUT_BITS = 33;
@@ -18,8 +19,8 @@ const int NUM_OUTPUT = 4;
 const int NUM_OUTPUT_BITS = 54;
 //const int NUM_STATE_BITS = 161;	// TODO
 //const int NUM_STATE_BITS = 398;	// TODO
-const int NUM_STATE_BITS = 253;	// TODO
-const int NUM_CTRL_BITS = 270;	// TODO
+const int NUM_STATE_BITS = 350; //253;
+const int NUM_CTRL_BITS = 270;	// TOD
 
 const int NUM_BRANCH = 211;
 const int NUM_VARS = 19;
@@ -44,16 +45,14 @@ bool IsDefaultBranch(const int i)
 
 // Circuit Simulation Functions
 inline
-void sim_reset_clock(Vtop *top)
-{        
+void sim_reset_clock(Vtop *top) {
     top->reset = 0;     // b circuit
     top->clock = 0;
 }
 
 inline
-void ToggleClk(Vtop *top)
-{
-    top->clock = ((top->clock & 1) ^ 1); // Toggle clock 
+void ToggleClk(Vtop *top) {
+	top->clock = ((top->clock & 1) ^ 1); // Toggle clock 
 }
 
 
