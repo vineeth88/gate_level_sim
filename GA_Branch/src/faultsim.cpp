@@ -418,6 +418,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "The -d option is for dumping detected faults on the screen.\n");
 		fprintf(stderr, "The -n option is for NO FAULT DROPPING. (.ndet & .sig file generated)\n");
 		fprintf(stderr, "The -i option is to begin the circuit in a state in *.init.\n");
+		fprintf(stderr, "The -f option is to dump the faulty states into file. (.fsig)\n");
 		fprintf(stderr, "and -o option is to OBSERVE fault-free outputs and FF's.\n");
 		fprintf(stderr, "Vectors (*.vec) may have SCAN FFs as well.\n");
 		fprintf(stderr, "\tResults are written to ckt.det and ckt.ufl files\n");
@@ -495,14 +496,16 @@ main(int argc, char *argv[])
 	}
 
 	fscanf(vecFile, "%d", &vecWidth);
-
-	strcpy(ffSigName, argv[nameIndex]);
-	strcat(ffSigName, ".fsig");
-	ffSigFile = fopen(ffSigName, "w");
-	if (ffSigFile == NULL)
-	{
-		fprintf(stderr, "Can't open %s\n", ffSigName);
-		exit(-1);
+	
+	if(GEN_FSIG) {
+		strcpy(ffSigName, argv[nameIndex]);
+		strcat(ffSigName, ".fsig");
+		ffSigFile = fopen(ffSigName, "w");
+		if (ffSigFile == NULL)
+		{
+			fprintf(stderr, "Can't open %s\n", ffSigName);
+			exit(-1);
+		}
 	}
 
 	if (NO_FAULTDROP)
@@ -578,8 +581,9 @@ main(int argc, char *argv[])
 		}
 		circuit->writeOutputNDET(ndetFile);
 	}
-
-	fclose(ffSigFile);
+	
+	if (GEN_FSIG)
+		fclose(ffSigFile);
 
 	fclose(frsFile);
 	fclose(detFile);

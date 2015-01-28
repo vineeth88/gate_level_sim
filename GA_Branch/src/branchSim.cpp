@@ -10,16 +10,18 @@
 // Defines
 #define RANDOM_SEED
 #define GA_FIND_TOP_INDIV
-#define FITNESS_DBG_ON
+//#define FITNESS_DBG_ON
 
 // ==================== Global Variables ============================
-int BRANCH_COV_ONLY = 1;
+int FAULT_COVERAGE = 0;
 
 int PARAMFILE_PRESENT = 0;
 int EXCL_FILE_PRESENT = 0;
 int COVGRAPH_PRESENT = 0;
 int BRGRAPH_PRESENT = 0;
 int CKT_WITH_MEMORY = 0;
+
+int rnd_seed;
 
 int_vec	exclBranchList;
 int_vec IsBranchLeaf;
@@ -55,13 +57,19 @@ class paramObj_t {
 		vecIn_t		inputVec;
 		state_pVec	stateList;
 	stateIdxMap_t	stateTable;
+		
 		int 		startIdx;		// Start index of stage 2
+		int_vec		resetIndices;
 
 		int_vec		branchHit;
+		int_vec 	totalBranchHit;
+		
+		rtLevelCkt*	rtlCkt;
+
+		// Stage 2 members
 		int_vec		lastBranchHit;
 		int_vec		branch_index;
 
-		rtLevelCkt*	rtlCkt;
 		brGraph_t*	cktBrGraph;
 		covGraph_t*	cktCovGraph;
 		string		currPath;
@@ -84,6 +92,8 @@ class paramObj_t {
 
 			branchHit = int_vec(NUM_BRANCH, 0);
 			lastBranchHit = int_vec(NUM_BRANCH, 0);
+			totalBranchHit = int_vec(NUM_BRANCH, 0);
+			resetIndices = int_vec();
 
 			rtlCkt = NULL;
 			cktBrGraph = NULL;
@@ -129,12 +139,17 @@ void PrintVectorSet(const vecIn_t&);
 
 int main(int argc, char* argv[]) {
 
+	uint32_t seed;
 	#ifdef RANDOM_SEED
-	uint32_t seed = time(NULL);
+	seed = time(NULL);
 	cout << "Seed: " << seed << endl;
 	srand(seed);
+	#else
+	seed = 1422414827;
 	#endif
-	
+
+	rnd_seed = seed;
+
 	char cktDir[256];
 	sprintf(cktDir, "lib/%s", benchCkt);
 
@@ -162,9 +177,9 @@ int main(int argc, char* argv[]) {
 			}
 			else if (argv[1][1] == 'c') {
 				if (argv[1][2] != '\0')
-					BRANCH_COV_ONLY = argv[1][2] - '0';
+					FAULT_COVERAGE = argv[1][2] - '0';
 				else
-					BRANCH_COV_ONLY = 1;
+					FAULT_COVERAGE = 0;
 					
 			}
 			else {
@@ -184,7 +199,7 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
-	if(BRANCH_COV_ONLY) 
+	if(!FAULT_COVERAGE) 
 		cout << "\nExecuting GA for MAX BRANCH COVERAGE" << endl;
 	else
 		cout << "\nExecuting GA for MAX FAULT COVERAGE" << endl;
@@ -230,55 +245,72 @@ int main(int argc, char* argv[]) {
 	if (BRGRAPH_PRESENT) 
 		paramObj->cktBrGraph = brGraphObj;
 
+	paramObj->totalBranchHit = int_vec(NUM_BRANCH, 0);
+	paramObj->resetIndices = int_vec();
+
 	/* Start: Stage 1 */
 	Stage1_GenerateVectors(paramObj);
-
-	if (BRGRAPH_PRESENT)
-		Stage2_GenerateVectors(paramObj);
 	
-	if (BRANCH_COV_ONLY) {
-		// Print vector to file
+	/* Start: Stage 2 (If graph present) */
+	if (BRGRAPH_PRESENT) 
+		Stage2_GenerateVectors(paramObj); 
+
+	/* Compute branch coverage after iteration */
+	for (int br = 0; br < NUM_BRANCH; ++br)
+		paramObj->totalBranchHit[br] += paramObj->branchHit[br];
+	
+	if (!FAULT_COVERAGE) {
 		#ifdef MEM_ALLOC_DBG_ON
 		cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
 			 << "state_t:    " << state_t::mem_alloc_cnt << endl;
 		#endif
 
+		cout << "\nFinal branch coverage: " << endl;
+
+		printCnt(paramObj->totalBranchHit);
 		PrintVectorSet(paramObj->inputVec);
 		delete paramObj;
 		return 0;
 	}
 
 	/* Fault Simulate vectors */
-	for (int idx = 0; (uint)idx < paramObj->stateList.size(); ++idx) {
-		string stateStr = paramObj->stateList[idx]->getHash();
-		if (paramObj->stateTable.find(stateStr) == paramObj->stateTable.end()) {
-			vector<int> tmpVec;
-			tmpVec.push_back(idx);
-			paramObj->stateTable.insert(make_pair(stateStr, tmpVec));
-		}
-		else
-			paramObj->stateTable[stateStr].push_back(idx);
-	}
-	
-	int cnt = 5;
+	int cnt = FAULT_COVERAGE;
 	while (--cnt) {
+
+		/* Add all states from previous iteration into stateTable */
+		for (int idx = 0; (uint)idx < paramObj->stateList.size(); ++idx) {
+			string stateStr = paramObj->stateList[idx]->getHash();
+			if (paramObj->stateTable.find(stateStr) == paramObj->stateTable.end()) {
+				vector<int> tmpVec;
+				tmpVec.push_back(idx);
+				paramObj->stateTable.insert(make_pair(stateStr, tmpVec));
+			}
+			else
+				paramObj->stateTable[stateStr].push_back(idx);
+		}
+
+		/* Compute new start index & add it to resetIndices */
 		paramObj->startIdx = paramObj->stateList.size();
+		paramObj->resetIndices.push_back(paramObj->startIdx);
 
 		Stage1_GenerateVectors(paramObj);
 		if (BRGRAPH_PRESENT)
 			Stage2_GenerateVectors(paramObj);
+
+		for (int br = 0; br < NUM_BRANCH; ++br)
+			paramObj->totalBranchHit[br] += paramObj->branchHit[br];
 
 		#ifdef MEM_ALLOC_DBG_ON
 		cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
 			 << "state_t:    " << state_t::mem_alloc_cnt << endl;
 		#endif
 	}
-//	paramObj->startIdx = paramObj->stateList.size();
-//
-//	Stage1_GenerateVectors(paramObj);
-//	if (BRGRAPH_PRESENT)
-//		Stage2_GenerateVectors(paramObj);
+	
+	/* Print final branch coverage */
+	cout << "\nFinal branch coverage: " << endl;
+	printCnt(paramObj->totalBranchHit);
 
+	/* Print vectors to file */
 	PrintVectorSet(paramObj->inputVec);
 	delete paramObj;
 
@@ -682,7 +714,8 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			/* Fitness for states reached 	*/
 			fitness_t fitness_state = 0;
-			if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+			if (FAULT_COVERAGE && (startIdx > 0)) {
+			#ifndef THREE_STATE_HAMMING_DIST
 				for (state_pVec_iter st = indiv->state_list.begin(); 
 						st != indiv->state_list.end(); ++st) {
 					keyVal_t hash = (*st)->getHash();
@@ -703,6 +736,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 					else 
 						fitness_state -= NEW_STATE_FIT;
 				}
+			#endif
+
+			#ifdef THREE_STATE_HAMMING_DIST
+			#endif
 			}
 
 			/* Combining all fitness values	*/
@@ -949,7 +986,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 				/* Fitness for states reached 	*/
 				fitness_t fitness_state = 0;
-				if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+				if (FAULT_COVERAGE && (startIdx > 0)) {
 					for (state_pVec_iter st = indiv->state_list.begin(); 
 							st != indiv->state_list.end(); ++st) {
 						keyVal_t hash = (*st)->getHash();
@@ -971,17 +1008,6 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 							fitness_state -= NEW_STATE_FIT;
 					}
 				}
-//				if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
-//					for (uint st_idx = 0; st_idx < indiv->state_list.size(); ++st_idx) {
-//						int offset = vec_offset + st_idx;
-//						if (offset >= st_idx)
-//							break;
-//						string currStr = (indiv->state_list[st_idx])->getState();
-//						string prevStr = paramObj->stateList[offset]->getState();
-//						/* Compute hamming distance */
-//						fitness_state -= compHammingDist(currStr, prevStr);
-//					}
-//				}
 
 				/* Combining all fitness values	*/
 				#ifdef FITNESS_DBG_ON
@@ -1124,7 +1150,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	
 	paramObj->branchHit = branch_cov;
 	paramObj->branch_index = (indiv_->state_list.back())->branch_index;
-	if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+	if (FAULT_COVERAGE && (startIdx > 0)) {
 		paramObj->inputVec += startVec;
 		size_t vecSize = paramObj->stateList.size() 
 							+ indiv_->state_list.size();
@@ -1143,10 +1169,6 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		 << startIdx << endl
 		 << vec_offset << endl;
 	assert (paramObj->stateList.size() == (startIdx + vec_offset));
-	//	cout << "Branches covered after Stage 1: " << endl;
-	//	printCnt(paramObj->branchHit);
-//	if ((BRANCH_COV_ONLY == 0) && (startIdx > 0))
-//		paramObj->startIdx += vec_offset;
 
 	delete indiv_;
 	delete rstState;
@@ -1554,7 +1576,7 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 			for (state_pVec_iter st = indiv->state_list.begin();
 					st != indiv->state_list.end(); ++st, ++st_idx) {
 
-				if ((BRANCH_COV_ONLY == 0) && (startIdx > 0)) {
+				if (FAULT_COVERAGE && (startIdx > 0)) {
 					keyVal_t hash = (*st)->getHash();
 					double avg_hamming_dist = 0;
 					string currStr = (indiv->state_list[st_idx])->getState();
@@ -1901,5 +1923,7 @@ void PrintVectorSet(const vecIn_t& inputVec) {
 	}
 
 	vecOutFile << "END" << endl;
+	vecOutFile << rnd_seed << endl;
+
 	vecOutFile.close();
 }
