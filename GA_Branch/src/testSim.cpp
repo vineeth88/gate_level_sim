@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
             cout << "Input format: " << endl
                 << argv[0] << " "
                 << argv[1] << " <ckt>.vec" << endl;
+			exit(-1);
         }
         else {
             sprintf(vecFile, "%s", argv[1]);

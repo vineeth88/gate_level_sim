@@ -7,14 +7,18 @@
 
 class rtLevelCkt : public abstrCkt {
 	
-	Vtop* cktVar;
+	Vtop 		*cktVar;
 
 	void 		printCurrState();
 	void 		printNextState();
 
 	public:
 
+	int_vec 	startIdxVec;
+	int_vec		sizeVec;
+
 	rtLevelCkt(Vtop*);
+	void		readSizeVars();
 	void		setVeriObj(Vtop*);
  	const Vtop*	getVeriObj() const;
 	void 		resetCounters();

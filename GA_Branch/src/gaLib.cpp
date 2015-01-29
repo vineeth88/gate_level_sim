@@ -410,7 +410,7 @@ void gaPopulation_t :: gaEvolve() {
 	}
 //	cout << "Indiv FWD: " << new_indiv_vec.size() << ":" << size_ << endl;
 
-	cout << "gaEvolve: " << endl;
+//	cout << "gaEvolve: " << endl;
 	// Selection/Crossover	
 	for (int i = size_; i < pop_size; i = i + 2) {
 

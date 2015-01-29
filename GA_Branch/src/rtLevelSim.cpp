@@ -9,6 +9,7 @@ rtLevelCkt :: rtLevelCkt(Vtop* cktParam) {
 	this->numOutputs = NUM_OUTPUT_BITS;
 	this->numFFs = NUM_STATE_BITS;
 	
+	this->readSizeVars();
 }
 
 void rtLevelCkt :: setVeriObj(Vtop* ckt) {

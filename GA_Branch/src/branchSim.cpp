@@ -39,6 +39,10 @@ typedef map<nodePair_t, string> pathMap_t;
 typedef map<string, vector<int> > stateIdxMap_t;
 typedef stateIdxMap_t::iterator stateIdxMap_iter;
 
+typedef map<string, int> varMap_t;
+typedef varMap_t::iterator varMap_iter;
+typedef vector<varMap_t> varMapVec_t;
+
 class paramObj_t { 
 	
 	public:
@@ -60,6 +64,9 @@ class paramObj_t {
 		
 		int 		startIdx;		// Start index of stage 2
 		int_vec		resetIndices;
+
+	varMapVec_t 	varMapArr;
+		int_vec		varWtArr;
 
 		int_vec		branchHit;
 		int_vec 	totalBranchHit;
@@ -135,7 +142,9 @@ bool compCoverage(gaIndiv_t*, gaIndiv_t*);
 int compHammingDist(string, string);
 void printCnt(int_vec&);
 void printVec(int_vec&);
-void PrintVectorSet(const vecIn_t&);
+void printVectorSet(const vecIn_t&);
+
+double computeMetric(paramObj_t*);
 
 int main(int argc, char* argv[]) {
 
@@ -268,14 +277,18 @@ int main(int argc, char* argv[]) {
 		cout << "\nFinal branch coverage: " << endl;
 
 		printCnt(paramObj->totalBranchHit);
-		PrintVectorSet(paramObj->inputVec);
+		printVectorSet(paramObj->inputVec);
 		delete paramObj;
 		return 0;
 	}
 
 	/* Fault Simulate vectors */
 	int cnt = FAULT_COVERAGE;
+	double newMetric = 0.0;
 	while (--cnt) {
+
+		newMetric = computeMetric(paramObj);
+		cout << "\n Metric Coverage: " << newMetric << endl;
 
 		/* Add all states from previous iteration into stateTable */
 		for (int idx = 0; (uint)idx < paramObj->stateList.size(); ++idx) {
@@ -311,7 +324,10 @@ int main(int argc, char* argv[]) {
 	printCnt(paramObj->totalBranchHit);
 
 	/* Print vectors to file */
-	PrintVectorSet(paramObj->inputVec);
+	printVectorSet(paramObj->inputVec);
+	newMetric = computeMetric(paramObj);
+	cout << "\nCoverage: " << newMetric << endl;
+	
 	delete paramObj;
 
 	#ifdef MEM_ALLOC_DBG_ON
@@ -1210,7 +1226,8 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 
 		cout << endl 
 			<< "ROUND : " << num_round << " / " << MAX_ROUNDS
-			<< endl << endl;
+			//<< endl 
+			<< endl;
 
 		if (unCovered.size() == 0) {
 			exit_status = 0;
@@ -1274,9 +1291,9 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			}
 		}
 
-		cout << "Target	: " << target_node << endl
-			<< "Level 	: " << target_lvl << endl
-			<< "Path 	: " << target_path << endl;
+		cout << "Target	: " << target_node //<< endl
+			<< " Level 	: " << target_lvl << endl
+			<< " Path 	: " << target_path << endl;
 
 		if (target_path.compare("Unreachable")) {
 			if (BranchNumTries[target_node] >= MAX_TRIES) {
@@ -1293,7 +1310,8 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			paramObj->currPath = target_path;
 			Stage2_Core(paramObj, iter_val);
 
-			cout << endl << "END OF PATH" << endl;
+			cout //<< endl 
+				 << "END OF PATH" << endl;
 
 			for (int br = 0; (uint)br < unCovered.size(); ++br) {
 				if (unCovered[br] == target_node)
@@ -1318,7 +1336,7 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 
 			cout << "unCovered: " << endl;
 			printVec(unCovered);
-			cout << endl;
+//			cout << endl;
 
 			prev_target_node = target_node;
 		}
@@ -1439,7 +1457,7 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			int max_num_paths = -1, max_path_index = -1;
 //			assert(nxtPaths.size());
 			if (nxtPaths.size() == 0) {
-				//PrintVectorSet(paramObj->inputVec, true);
+				//printVectorSet(paramObj->inputVec, true);
 				//getDominator(covGraph, unCovered);
 				exit_status = -1;
 				break;
@@ -1547,7 +1565,7 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 	//NUM_GEN = 1;
 	for (int gen = 0; gen < NUM_GEN; ++gen) {
 		
-		cout << endl << "GEN " << gen << endl;
+		cout << "GEN " << gen << endl;
 
 		fitness_t curr_gen_max_fit = - (2 << 20), curr_gen_min_fit = (2 << 20);
 		for (int ind = 0; ind < POP_SIZE; ++ind) {
@@ -1753,8 +1771,8 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 	}
 #endif
 	
-	cout << endl << "After GA(Core) : " << endl;
-	indiv->printIndiv(0);
+//	cout << endl << "After GA(Core) : " << endl;
+//	indiv->printIndiv(0);
 //	cout << endl << indiv->max_index + 1 << " vectors copied" << endl;
 
 	paramObj->inputVec += indiv->input_vec.substr(0, 
@@ -1778,8 +1796,8 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 	for (int ind = 0; ind < NUM_BRANCH; ++ind)
 		branchHit[ind] += lastBranchHit[ind];
 	
-	cout << "Returning from Stage2_Core" << endl;
-	printCnt(paramObj->branchHit);
+//	cout << "Returning from Stage2_Core" << endl;
+//	printCnt(paramObj->branchHit);
 	
 	cout << paramObj->stateList.back()->getState() << endl;
 
@@ -1904,7 +1922,7 @@ void printVec(int_vec& vec_) {
 		cout << *vt << " ";
 }
 
-void PrintVectorSet(const vecIn_t& inputVec) {
+void printVectorSet(const vecIn_t& inputVec) {
 
 	ofstream vecOutFile;
 	char vecName[100];
@@ -1926,4 +1944,37 @@ void PrintVectorSet(const vecIn_t& inputVec) {
 	vecOutFile << rnd_seed << endl;
 
 	vecOutFile.close();
+}
+
+double computeMetric(paramObj_t* paramObj) {
+	state_pVec& stateList = paramObj->stateList;
+	
+	int_vec& startVec = paramObj->rtlCkt->startIdxVec;
+	int_vec& sizeVec  = paramObj->rtlCkt->sizeVec;
+	
+	typedef map<string, int> varMap_t;
+	typedef vector<varMap_t> varMapVec_t;
+	typedef varMapVec_t::iterator varMapVec_it;
+
+	varMapVec_t mapVec(NUM_VARS);
+	for (state_pVec_iter st = stateList.begin(); st != stateList.end(); ++st) {
+		
+		string stateStr = (*st)->getState();
+		for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {	
+			string varStr = stateStr.substr(startVec[varIdx], sizeVec[varIdx]);
+			if (mapVec[varIdx].find(varStr) == mapVec[varIdx].end())
+				mapVec[varIdx].insert(make_pair(varStr, 1));
+			else
+				++(mapVec[varIdx][varStr]);
+		}
+	
+	}
+	
+	double newMetric = 0.0;
+	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
+//		cout << mapVec[varIdx].size() << " " << (1 << sizeVec[varIdx]) << endl;
+		newMetric += ((double) mapVec[varIdx].size()) / ((double) sizeVec[varIdx]);
+	}
+//	cout << newMetric << endl;
+	return newMetric;
 }
