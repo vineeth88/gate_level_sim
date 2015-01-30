@@ -21,7 +21,9 @@ const int NUM_STATE_BITS = 11;
 //const int NUM_STATE_BITS = 14;	// Changed to match gate level 
 
 const int NUM_BRANCH = 32;
-const int NUM_VARS = 7;
+const int NUM_VARS = 8;
+const int VAR_START_ARR[] = {0, 4, 5, 6, 7, 8, 9, 10};
+const int VAR_SIZE_ARR[]  = {4, 1, 1, 1, 1, 1, 1,  1};
 
 void set_input(Vtop*, const vecIn_t&);
 

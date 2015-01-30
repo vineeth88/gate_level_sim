@@ -44,6 +44,7 @@ class rtLevelCkt : public abstrCkt {
 			delete cktVar;
 			cktVar = NULL;
 		}
+		cout << "\nDeleting rtLevelCkt" << endl;
 	}
 };
 

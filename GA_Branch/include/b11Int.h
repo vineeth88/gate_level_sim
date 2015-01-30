@@ -21,6 +21,8 @@ const int NUM_STATE_BITS = 25;
 
 const int NUM_BRANCH = 33;
 const int NUM_VARS = 4;
+const int VAR_START_ARR[] = {0, 6, 10, 16};
+const int VAR_SIZE_ARR[]  = {6, 4,  6,  9}; 
 
 void set_input(Vtop*, const vecIn_t&);
 

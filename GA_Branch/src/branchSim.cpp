@@ -96,11 +96,14 @@ class paramObj_t {
 			MAX_TRIES_2 = 20;
 
 			startIdx = 0;
+			resetIndices = int_vec();
+
+			varMapArr = varMapVec_t(NUM_VARS);
+			varWtArr = int_vec(NUM_VARS, 0);
 
 			branchHit = int_vec(NUM_BRANCH, 0);
 			lastBranchHit = int_vec(NUM_BRANCH, 0);
 			totalBranchHit = int_vec(NUM_BRANCH, 0);
-			resetIndices = int_vec();
 
 			rtlCkt = NULL;
 			cktBrGraph = NULL;
@@ -154,7 +157,13 @@ int main(int argc, char* argv[]) {
 	cout << "Seed: " << seed << endl;
 	srand(seed);
 	#else
-	seed = 1422414827;
+	#if defined (__b12)
+		seed = 1422414827;
+	#elif defined (__b10)
+		seed = 1422647276;
+	#else
+		seed = 1422647276;
+	#endif
 	#endif
 
 	rnd_seed = seed;
@@ -208,10 +217,10 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
-	if(!FAULT_COVERAGE) 
-		cout << "\nExecuting GA for MAX BRANCH COVERAGE" << endl;
-	else
+	if(FAULT_COVERAGE) 
 		cout << "\nExecuting GA for MAX FAULT COVERAGE" << endl;
+	else
+		cout << "\nExecuting GA for MAX BRANCH COVERAGE" << endl;
 	
 	// param file
 	paramObj_t* paramObj = new paramObj_t;
@@ -268,27 +277,14 @@ int main(int argc, char* argv[]) {
 	for (int br = 0; br < NUM_BRANCH; ++br)
 		paramObj->totalBranchHit[br] += paramObj->branchHit[br];
 	
-	if (!FAULT_COVERAGE) {
-		#ifdef MEM_ALLOC_DBG_ON
-		cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
-			 << "state_t:    " << state_t::mem_alloc_cnt << endl;
-		#endif
-
-		cout << "\nFinal branch coverage: " << endl;
-
-		printCnt(paramObj->totalBranchHit);
-		printVectorSet(paramObj->inputVec);
-		delete paramObj;
-		return 0;
-	}
-
 	/* Fault Simulate vectors */
 	int cnt = FAULT_COVERAGE;
 	double newMetric = 0.0;
-	while (--cnt) {
+	
+	while(cnt) {
 
 		newMetric = computeMetric(paramObj);
-		cout << "\n Metric Coverage: " << newMetric << endl;
+		cout << "\nnewMetric Coverage: " << newMetric << endl;
 
 		/* Add all states from previous iteration into stateTable */
 		for (int idx = 0; (uint)idx < paramObj->stateList.size(); ++idx) {
@@ -313,25 +309,30 @@ int main(int argc, char* argv[]) {
 		for (int br = 0; br < NUM_BRANCH; ++br)
 			paramObj->totalBranchHit[br] += paramObj->branchHit[br];
 
-		#ifdef MEM_ALLOC_DBG_ON
-		cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
-			 << "state_t:    " << state_t::mem_alloc_cnt << endl;
-		#endif
+		--cnt;
+
 	}
-	
+
+	#ifdef MEM_ALLOC_DBG_ON
+	cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
+		 << "state_t:    " << state_t::mem_alloc_cnt << endl;
+	#endif
+
 	/* Print final branch coverage */
 	cout << "\nFinal branch coverage: " << endl;
 	printCnt(paramObj->totalBranchHit);
-
+	
 	/* Print vectors to file */
 	printVectorSet(paramObj->inputVec);
+	
 	newMetric = computeMetric(paramObj);
-	cout << "\nCoverage: " << newMetric << endl;
+	cout << "\nnewMetric Coverage: " << newMetric << endl;
 	
 	delete paramObj;
 
 	#ifdef MEM_ALLOC_DBG_ON
-	cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
+	cout << "After deleting paramObj" << endl
+		 << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
 		 << "state_t:    " << state_t::mem_alloc_cnt << endl;
 	#endif
 	
@@ -727,6 +728,15 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			/* Fitness for branch coverage	*/
 			fitness_t fitness_branch = 0;
+			if (FAULT_COVERAGE && (startIdx > 0)) {
+				for (int br = 0; br < NUM_BRANCH; ++br) {
+					if (indiv->branch_cov[br] && (paramObj->totalBranchHit[br] == 0) 
+							&& (exclBranchList[br] == 0)) {
+						cout << ind << " reached new branch " << br << endl;
+						fitness_branch -= WT_NEW_BRANCH;
+					}
+				}
+			}
 
 			/* Fitness for states reached 	*/
 			fitness_t fitness_state = 0;
@@ -755,16 +765,17 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			#endif
 
 			#ifdef THREE_STATE_HAMMING_DIST
+			// TODO
 			#endif
 			}
 
 			/* Combining all fitness values	*/
-			#ifdef FITNESS_DBG_ON
+//			#ifdef FITNESS_DBG_ON
 			cout << "[" << ind << "]\t" 
 				 << (fitness_cov * WT_FIT_COV) << " "
 				 << (fitness_branch * WT_FIT_BRANCH) << " "
 				 << (fitness_state * WT_FIT_STATE) << endl;
-			#endif
+//			#endif
 			indiv->fitness 
 				= (fitness_cov * WT_FIT_COV) 
 				+ (fitness_branch * WT_FIT_BRANCH)
@@ -798,7 +809,8 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			for (gaIndiv_pVec_iter gt = stage0Pop.indiv_vec.begin(); 
 					gt != stage0Pop.indiv_vec.end(); ++gt) {
-				if (compCoverage(*gt, indiv))
+//				if (compCoverage(*gt, indiv))
+				if (compFitness(*gt, indiv))
 					indiv = *gt;
 			}
 			cout << "Fitness: " << indiv->fitness << "\t | " << indiv->index << endl;
@@ -837,6 +849,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 #ifdef GA_FIND_TOP_INDIV
 	gaIndiv_t *tmp = stage0Pop.indiv_vec[0];
+	cout << "Fitness: " << tmp->fitness << "\t | " << tmp->index << endl;
 	int max_idx = 0, idx = 0;
 	for (gaIndiv_pVec_iter gt = stage0Pop.indiv_vec.begin(); 
 			gt != stage0Pop.indiv_vec.end(); ++gt, ++idx) {
@@ -851,7 +864,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 #endif
 
 	/* Sorting to calculate the best indiv among the N generations */
-	std::sort(topIndiv_vec.begin(), topIndiv_vec.end(), compCoverage);
+	std::sort(topIndiv_vec.begin(), topIndiv_vec.end(), compFitness);
 	gaIndiv_t *indiv = topIndiv_vec[0];
 
 	gaIndiv_pVec_iter gt = topIndiv_vec.begin(); 
@@ -1948,15 +1961,20 @@ void printVectorSet(const vecIn_t& inputVec) {
 
 double computeMetric(paramObj_t* paramObj) {
 	state_pVec& stateList = paramObj->stateList;
-	
-	int_vec& startVec = paramObj->rtlCkt->startIdxVec;
-	int_vec& sizeVec  = paramObj->rtlCkt->sizeVec;
+
+	assert(paramObj != NULL);	
+//	assert(paramObj->rtlCkt != NULL);
+
+	int_vec startVec = int_vec(VAR_START_ARR, VAR_START_ARR + NUM_VARS);
+	int_vec sizeVec =  int_vec(VAR_SIZE_ARR, VAR_SIZE_ARR + NUM_VARS);
 	
 	typedef map<string, int> varMap_t;
 	typedef vector<varMap_t> varMapVec_t;
 	typedef varMapVec_t::iterator varMapVec_it;
 
-	varMapVec_t mapVec(NUM_VARS);
+	varMapVec_t& mapVec = paramObj->varMapArr;
+	assert(mapVec.size() == (uint)NUM_VARS);
+
 	for (state_pVec_iter st = stateList.begin(); st != stateList.end(); ++st) {
 		
 		string stateStr = (*st)->getState();
@@ -1971,10 +1989,26 @@ double computeMetric(paramObj_t* paramObj) {
 	}
 	
 	double newMetric = 0.0;
+	int_vec& varWt = paramObj->varWtArr;
+	assert(varWt.size() == (uint)NUM_VARS);
 	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
-//		cout << mapVec[varIdx].size() << " " << (1 << sizeVec[varIdx]) << endl;
-		newMetric += ((double) mapVec[varIdx].size()) / ((double) sizeVec[varIdx]);
+		if (varWt[varIdx]) 
+			newMetric += ((double) mapVec[varIdx].size()) / ((double) varWt[varIdx]);
+		else
+			newMetric += 0.5;
+		cout << mapVec[varIdx].size() << " " << varWt[varIdx] << endl;
 	}
-//	cout << newMetric << endl;
-	return newMetric;
+
+	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
+		if (varWt[varIdx] == 0)
+			varWt[varIdx] = 2*mapVec[varIdx].size();
+		else if (mapVec[varIdx].size() > varWt[varIdx]) {
+			varWt[varIdx] *= 2;
+			if (varWt[varIdx] > (1 << sizeVec[varIdx]))
+				varWt[varIdx] = (1 << sizeVec[varIdx]);
+		}
+	}
+		
+	return newMetric/NUM_VARS;
 }
+
