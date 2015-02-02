@@ -1,4 +1,4 @@
-BENCH = b10
+BENCH = b12
 DEFINE_BENCH = -D__${BENCH}
 BENCH_DIR = ./lib/${BENCH}
 LIBS =  ${BENCH_DIR}/cpp/Vtop__ALL.a

@@ -36,6 +36,14 @@ void rtLevelCkt :: printNextState() {}
 inline
 void rtLevelCkt :: printCurrState() {}
 
+void rtLevelCkt :: readSizeVars() {
+	
+	this->startIdxVec = int_vec(VAR_START_ARR, VAR_START_ARR + NUM_VARS);
+	this->sizeVec = int_vec(VAR_SIZE_ARR, VAR_SIZE_ARR + NUM_VARS);
+	
+	assert(startIdxVec.size() == sizeVec.size());
+}
+
 void rtLevelCkt :: setCktState(const state_t* state) {
 	string stateStr = state->getState();
 	setCktState(stateStr);

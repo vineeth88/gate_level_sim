@@ -8,9 +8,11 @@
 #include <sys/resource.h>
 
 // Defines
-#define RANDOM_SEED
+//#define RANDOM_SEED
 #define GA_FIND_TOP_INDIV
 //#define FITNESS_DBG_ON
+#define DEBUG_PRINT_INDIV_OFF
+//#define FULL_STATE_VARS
 
 // ==================== Global Variables ============================
 int FAULT_COVERAGE = 0;
@@ -42,6 +44,9 @@ typedef stateIdxMap_t::iterator stateIdxMap_iter;
 typedef map<string, int> varMap_t;
 typedef varMap_t::iterator varMap_iter;
 typedef vector<varMap_t> varMapVec_t;
+typedef vector<varMapVec_t> varMapVec2_t;
+
+typedef vector<double> dbl_vec;
 
 class paramObj_t { 
 	
@@ -65,8 +70,9 @@ class paramObj_t {
 		int 		startIdx;		// Start index of stage 2
 		int_vec		resetIndices;
 
-	varMapVec_t 	varMapArr;
+	varMapVec2_t 	varMapArr;
 		int_vec		varWtArr;
+		dbl_vec 	branchFactor;
 
 		int_vec		branchHit;
 		int_vec 	totalBranchHit;
@@ -98,13 +104,15 @@ class paramObj_t {
 			startIdx = 0;
 			resetIndices = int_vec();
 
-			varMapArr = varMapVec_t(NUM_VARS);
+			varMapVec_t tmpVec(NUM_VARS);
+			varMapArr = varMapVec2_t(NUM_BRANCH+1, tmpVec);
 			varWtArr = int_vec(NUM_VARS, 0);
+			branchFactor = dbl_vec(NUM_BRANCH, 0.0);
 
 			branchHit = int_vec(NUM_BRANCH, 0);
 			lastBranchHit = int_vec(NUM_BRANCH, 0);
 			totalBranchHit = int_vec(NUM_BRANCH, 0);
-
+			
 			rtlCkt = NULL;
 			cktBrGraph = NULL;
 			cktCovGraph = NULL;
@@ -770,12 +778,12 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			}
 
 			/* Combining all fitness values	*/
-//			#ifdef FITNESS_DBG_ON
+			#ifdef FITNESS_DBG_ON
 			cout << "[" << ind << "]\t" 
 				 << (fitness_cov * WT_FIT_COV) << " "
 				 << (fitness_branch * WT_FIT_BRANCH) << " "
 				 << (fitness_state * WT_FIT_STATE) << endl;
-//			#endif
+			#endif
 			indiv->fitness 
 				= (fitness_cov * WT_FIT_COV) 
 				+ (fitness_branch * WT_FIT_BRANCH)
@@ -1092,8 +1100,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		}
 #endif
 
+		#ifndef DEBUG_PRINT_INDIV_OFF
 		cout << "Fittest indiv after round " << round << endl;
 		indiv->printIndiv(1);
+		#endif
 
 		int_vec curr_branch_cnt (NUM_BRANCH, 0);
 		bool new_start_state = false;
@@ -1102,6 +1112,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			keyVal_t hash_val_ = curr->getHash();
 			retVal_t ret = glStateMap.insert(make_pair(hash_val_, curr));
 
+			#ifdef DEBUG_PRINT_INDIV_OFF
+			if (ret.second == true)
+				new_start_state = true;
+			#else
 			if (ret.second == true) {
 				cout << "X";
 				new_start_state = true;
@@ -1109,6 +1123,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			else {
 				cout << "-";
 			}
+			#endif
 			for (int_vec_iter bt = curr->branch_index.begin();
 					bt != curr->branch_index.end(); ++bt)
 				curr_branch_cnt[*bt]++;
@@ -1963,51 +1978,119 @@ double computeMetric(paramObj_t* paramObj) {
 	state_pVec& stateList = paramObj->stateList;
 
 	assert(paramObj != NULL);	
-//	assert(paramObj->rtlCkt != NULL);
 
 	int_vec startVec = int_vec(VAR_START_ARR, VAR_START_ARR + NUM_VARS);
 	int_vec sizeVec =  int_vec(VAR_SIZE_ARR, VAR_SIZE_ARR + NUM_VARS);
-	
-	typedef map<string, int> varMap_t;
-	typedef vector<varMap_t> varMapVec_t;
-	typedef varMapVec_t::iterator varMapVec_it;
 
-	varMapVec_t& mapVec = paramObj->varMapArr;
+	varMapVec2_t& fullMapVec = paramObj->varMapArr;
+	assert(fullMapVec.size() == (uint)(NUM_BRANCH+1));
+
+	varMapVec_t& mapVec = paramObj->varMapArr[NUM_BRANCH];
 	assert(mapVec.size() == (uint)NUM_VARS);
 
-	for (state_pVec_iter st = stateList.begin(); st != stateList.end(); ++st) {
-		
-		string stateStr = (*st)->getState();
+	#ifdef FULL_STATE_VARS
+	int stInd = 0;
+	int_vec& branchHit = paramObj->totalBranchHit;
+	#else
+	int stInd = paramObj->startIdx;
+	int_vec& branchHit = paramObj->branchHit;
+	#endif
+	for (; stInd < stateList.size(); ++stInd) {
+		state_t *st = stateList[stInd];
+		string stateStr = st->getState();
 		for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {	
 			string varStr = stateStr.substr(startVec[varIdx], sizeVec[varIdx]);
+			for (int_vec_iter it = st->branch_index.begin(); 
+					it != st->branch_index.end(); ++it) {
+				if (fullMapVec[*it][varIdx].find(varStr) ==
+						fullMapVec[*it][varIdx].end())
+					fullMapVec[*it][varIdx].insert(make_pair(varStr, 1));
+				else
+					++(fullMapVec[*it][varIdx][varStr]);
+			}
 			if (mapVec[varIdx].find(varStr) == mapVec[varIdx].end())
 				mapVec[varIdx].insert(make_pair(varStr, 1));
 			else
 				++(mapVec[varIdx][varStr]);
 		}
-	
 	}
+	
+	cout << "Total:" << endl;
+	for (int vIdx = 0; vIdx < NUM_VARS; ++vIdx)
+		cout << mapVec[vIdx].size() << " ";
+	cout << endl;
 	
 	double newMetric = 0.0;
-	int_vec& varWt = paramObj->varWtArr;
-	assert(varWt.size() == (uint)NUM_VARS);
-	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
-		if (varWt[varIdx]) 
-			newMetric += ((double) mapVec[varIdx].size()) / ((double) varWt[varIdx]);
-		else
-			newMetric += 0.5;
-		cout << mapVec[varIdx].size() << " " << varWt[varIdx] << endl;
-	}
+	double newMetric2 = 0.0;
+	dbl_vec& brMetric = paramObj->branchFactor;
+	for (int br = 0; br < NUM_BRANCH; ++br) {
+		if (branchHit[br]) {
+			cout << "B: " << br << " " 
+				 << branchHit[br] 
+				 << endl;
 
-	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
-		if (varWt[varIdx] == 0)
-			varWt[varIdx] = 2*mapVec[varIdx].size();
-		else if (mapVec[varIdx].size() > varWt[varIdx]) {
-			varWt[varIdx] *= 2;
-			if (varWt[varIdx] > (1 << sizeVec[varIdx]))
-				varWt[varIdx] = (1 << sizeVec[varIdx]);
+			double val = 0.0;
+			for (int vIdx = 0; vIdx < NUM_VARS; ++vIdx) {
+				val += ((double)fullMapVec[br][vIdx].size()) 
+							/ mapVec[vIdx].size();
+				cout << fullMapVec[br][vIdx].size() << " ";
+			}
+			cout << val << " " 
+				 << val / branchHit[br] << endl;
+			brMetric[br] = val;
+			newMetric += val / branchHit[br];
+			newMetric2 += val;
 		}
 	}
+	
+	cout << "1: " << newMetric / NUM_VARS << endl
+		 << "2: " << newMetric2 / NUM_VARS << endl;
+//	for (int br = 0; br < NUM_BRANCH; ++br) {
+//		if (paramObj->totalBranchHit[br] == 0)
+//			continue;
+//
+//		varMapVec_t& itMapVec = paramObj->varMapArr[br];
+//		assert(itMapVec.size() == (uint)NUM_VARS);
+//		
+//		for (int stInd = paramObj->startIdx; stInd < stateList.size(); ++stInd) {
+//			state_t *st = stateList[stInd];
+//			string stateStr = st->getState();
+//			printVec(st->branch_index);
+//			for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {	
+//				string varStr = stateStr.substr(startVec[varIdx], sizeVec[varIdx]);
+//				if (itMapVec[varIdx].find(varStr) == itMapVec[varIdx].end())
+//					itMapVec[varIdx].insert(make_pair(varStr, 1));
+//				else
+//					++(itMapVec[varIdx][varStr]);
+//			}
+//		}
+//
+////		cout << br << endl;
+////		for (int vIdx = 0; vIdx < NUM_VARS; ++vIdx)
+////			cout << itMapVec[vIdx].size() << " ";
+////		cout << endl;
+//
+//	}
+
+//	int_vec& varWt = paramObj->varWtArr;
+//	assert(varWt.size() == (uint)NUM_VARS);
+//	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
+//		if (varWt[varIdx]) 
+//			newMetric += ((double) mapVec[varIdx].size()) / ((double) varWt[varIdx]);
+//		else
+//			newMetric += 0.5;
+//		cout << mapVec[varIdx].size() << " " << varWt[varIdx] << endl;
+//	}
+//
+//	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
+//		if (varWt[varIdx] == 0)
+//			varWt[varIdx] = 2*mapVec[varIdx].size();
+//		else if (mapVec[varIdx].size() > varWt[varIdx]) {
+//			varWt[varIdx] *= 2;
+//			if (varWt[varIdx] > (1 << sizeVec[varIdx]))
+//				varWt[varIdx] = (1 << sizeVec[varIdx]);
+//		}
+//	}
 		
 	return newMetric/NUM_VARS;
 }
