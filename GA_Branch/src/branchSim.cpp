@@ -603,13 +603,14 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	/* Parameters */
 	int NUM_GEN	= paramObj->NUM_GEN_1;
 	int POP_SIZE = paramObj->POP_SIZE_1;
+
 	int VEC_LEN	= paramObj->INDIV_LEN_1 / NUM_INPUT_BITS;
 	int MAX_ROUNDS = paramObj->MAX_ROUNDS_1;
 	int startIdx = paramObj->startIdx;
 	stateIdxMap_t& stateTable = paramObj->stateTable;
 	state_pVec& pStateList = paramObj->stateList;
 
-	int vec_offset = 0;
+//	int vec_offset = 0;
 
 	double WT_FIT_STATE = 0.4;
 	double WT_FIT_COV = 0.3;
@@ -618,6 +619,12 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	int WT_COV = 500;
 	int WT_NEW_BRANCH = 2000;
 	int NEW_STATE_FIT = NUM_STATE_BITS;
+
+	int lg_pop_size = 0;
+	for (int pop_size = POP_SIZE; pop_size > 0;) {
+		lg_pop_size++;
+		pop_size >>= 1;
+	}
 
 	cout << "\nGA Stage 1: " << endl
 		<< POP_SIZE << " individuals / " << VEC_LEN << " vectors" << endl;
@@ -719,11 +726,15 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			avgCov += indiv->num_branch;
 
 		}
-
-		cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
-			<< "Max Coverage: " << maxCov << endl;
-
-		avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+	
+		/* TODO:
+			- Instead of division with double precision, use avgCov >> log(POP_SIZE)
+		*/
+//		cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
+//			<< "Max Coverage: " << maxCov << endl;
+//
+//		avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+		avgCov = avgCov >> lg_pop_size;
 		improv_cov = (maxCov >= prevMaxCov);
 
 		/* Compute Fitness	*/
@@ -913,9 +924,9 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	startVec = rstVec + indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
 	startPool.push_back(st);
 
-	vec_offset += 1 + indiv->max_index + 1;
-	cout << "Size: " << startVec.length() << " Off: " << vec_offset << endl;
-	assert(startVec.size() == (vec_offset * NUM_INPUT_BITS));
+//	vec_offset += 1 + indiv->max_index + 1;
+//	cout << "Size: " << startVec.length() << " Off: " << vec_offset << endl;
+//	assert(startVec.size() == (vec_offset * NUM_INPUT_BITS));
 
 	cout << "After Round 0: " << endl
 		 << st->getState()
@@ -999,10 +1010,11 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			}
 
-			cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
-				<< "Max Coverage: " << maxCov << endl;
-
-			avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+//			cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
+//				<< "Max Coverage: " << maxCov << endl;
+//
+//			avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+			avgCov = avgCov >> lg_pop_size;
 			improv_cov = (maxCov >= prevMaxCov);
 
 			/* Compute Fitness	*/
@@ -1151,9 +1163,9 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 		startVec += indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
 		
-		vec_offset += indiv->max_index + 1;
-		cout << "Size: " << startVec.size() << " Off: " << vec_offset << endl;
-		assert(startVec.size() == (NUM_INPUT_BITS*vec_offset));
+//		vec_offset += indiv->max_index + 1;
+//		cout << "Size: " << startVec.size() << " Off: " << vec_offset << endl;
+//		assert(startVec.size() == (NUM_INPUT_BITS*vec_offset));
 
 		for (state_pVec_iter st = startPool.begin(); st != startPool.end(); ++st)
 			if (*st != NULL) {
@@ -1209,10 +1221,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	}
 	indiv_->state_list = state_pVec(indiv_->vec_length, NULL);
 
-	cout << paramObj->stateList.size() << endl
-		 << startIdx << endl
-		 << vec_offset << endl;
-	assert (paramObj->stateList.size() == (startIdx + vec_offset));
+//	cout << paramObj->stateList.size() << endl
+//		 << startIdx << endl
+//		 << vec_offset << endl;
+//	assert (paramObj->stateList.size() == (startIdx + vec_offset));
 
 	delete indiv_;
 	delete rstState;

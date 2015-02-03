@@ -24,6 +24,10 @@ const int NUM_CTRL_BITS = 270;	// TOD
 
 const int NUM_BRANCH = 211;
 const int NUM_VARS = 19;
+const int VAR_START_ARR[] = { 0, 32, 64, 96, 122, 123, 153, 154, 156, 178,
+						210, 212, 215, 216, 220, 252, 284, 316, 348};
+const int VAR_SIZE_ARR[]  = {32, 32, 32, 26,   1,  30,   1,   2,  32,  32,
+						  2,   3,   1,   4,  32,  32,  32,  32,   2};
 
 void set_input(Vtop*, const vecIn_t&);
 // Functions
