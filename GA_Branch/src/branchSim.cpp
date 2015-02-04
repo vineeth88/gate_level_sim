@@ -625,9 +625,12 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		lg_pop_size++;
 		pop_size >>= 1;
 	}
+	lg_pop_size--;
 
 	cout << "\nGA Stage 1: " << endl
 		<< POP_SIZE << " individuals / " << VEC_LEN << " vectors" << endl;
+	
+	cout << lg_pop_size << endl;
 
 	/* Initialize rtLevelCkt */
 	Vtop *cktVar = new Vtop;
@@ -657,7 +660,8 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		of start states and string of random vectors	*/
 	stage0Pop.initPopulation(startPool);
 
-	stateMap_t currStateMap, glStateMap;
+//	stateMap_t glStateMap;
+	stateSet_t currStateMap, glStateMap; 
 	currStateMap.clear();
 	int prevMaxCov = 0;
 
@@ -696,24 +700,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 					st != indiv->state_list.end(); ++st) {
 				state_t *curr = *st;
 				keyVal_t hash_val_ = curr->getHash();
-				retVal_t ret = currStateMap.insert(make_pair(hash_val_, curr));
+				retVal_t ret = currStateMap.insert(hash_val_);
 
-				curr->hit_count = 1;
-				/*	If the key for the state is present	=>	New state was not found
-					If the value for the key = NULL	
-					=> 	The state was found in the previous cycle
-					Therefore, set the new found state as the value for that key.
-					Else => The state was found in this cycle
-					Therefore, just increment the count of that state		*/
-				if (ret.second == false) {
-					if (ret.first->second)
-						(ret.first->second)->hit_count++;
-					else 
-						(ret.first->second) = curr;
-				}
-				else {
+				if (ret.second)
 					new_state = true;
-				}
 			}
 
 			indiv->num_branch = computeBranches(indiv->branch_cov);
@@ -727,15 +717,12 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 		}
 	
-		/* TODO:
-			- Instead of division with double precision, use avgCov >> log(POP_SIZE)
-		*/
-//		cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
-//			<< "Max Coverage: " << maxCov << endl;
-//
 //		avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
 		avgCov = avgCov >> lg_pop_size;
 		improv_cov = (maxCov >= prevMaxCov);
+
+//		cout << "Avg Coverage: " << avgCov << endl
+//			<< "Max Coverage: " << maxCov << endl;
 
 		/* Compute Fitness	*/
 		for (int ind = 0; ind < POP_SIZE; ++ind) {
@@ -809,10 +796,6 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		gaTerminate = (gen == NUM_GEN - 1) | (!improv_cov) | (!new_state);
 
 		if (!gaTerminate) {
-
-			for (stateMap_iter st = currStateMap.begin(); 
-					st != currStateMap.end(); ++st) 
-				currStateMap[st->first] = NULL;
 
 #ifndef GA_FIND_TOP_INDIV
 			//			for (int ind = 0; ind < POP_SIZE; ++ind) {
@@ -913,7 +896,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	for (int st = 0; st <= indiv->max_index; ++st) {	
 		state_t *curr = indiv->state_list[st];
 		keyVal_t hash_val_ = curr->getHash();
-		glStateMap.insert(make_pair(hash_val_, curr));
+		glStateMap.insert(hash_val_);
 
 		for (int_vec_iter bt = curr->branch_index.begin();
 				bt != curr->branch_index.end(); ++bt)
@@ -950,7 +933,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			of start states and string of random vectors	*/
 		stage0Pop.initPopulation(startPool);
 
-		stateMap_t currStateMap;
+		stateSet_t currStateMap;
 		//stateMap_t currStateMap = glStateMap;
 		int prevMaxCov = 0;
 
@@ -977,27 +960,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 						st != indiv->state_list.end(); ++st) {
 					state_t *curr = *st;
 					keyVal_t hash_val_ = curr->getHash();
-					retVal_t ret = currStateMap.insert(make_pair(hash_val_, curr));
+					retVal_t ret = currStateMap.insert(hash_val_);
 
-					curr->hit_count = 1;
-					/*	If the key for the state is present	=>	New state was not found
-
-						If the value for the key = NULL	
-						=> The state was found in the previous cycle. 
-						Therefore, set the new found state as the value for that key.
-
-						Else => The state was found in this cycle
-						Therefore, just increment the count of that state		*/
-
-					if (ret.second == false) {
-						if (ret.first->second)
-							(ret.first->second)->hit_count++;
-						else 
-							(ret.first->second) = curr;
-					}
-					else {
+					if (ret.second)
 						new_state = true;
-					}
 				}
 
 				indiv->num_branch = computeBranches(indiv->branch_cov);
@@ -1080,13 +1046,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			gaTerminate = (gen == NUM_GEN - 1) | (!improv_cov) | (!new_state);
 
 			if (!gaTerminate) {
-
-				for (stateMap_iter st = currStateMap.begin(); 
-						st != currStateMap.end(); ++st) 
-					currStateMap[st->first] = NULL;
-
 				stage0Pop.gaEvolve();
-
 				prevMaxCov = maxCov;
 			}
 			else {
@@ -1122,20 +1082,20 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		for (int st = 0; st <= indiv->max_index; ++st) {	
 			state_t *curr = indiv->state_list[st];
 			keyVal_t hash_val_ = curr->getHash();
-			retVal_t ret = glStateMap.insert(make_pair(hash_val_, curr));
+			retVal_t ret = glStateMap.insert(hash_val_);
 
 			#ifdef DEBUG_PRINT_INDIV_OFF
-			if (ret.second == true)
+			if (ret.second)
 				new_start_state = true;
 			#else
-			if (ret.second == true) {
+			if (ret.second) {
 				cout << "X";
 				new_start_state = true;
 			}
-			else {
+			else 
 				cout << "-";
-			}
 			#endif
+
 			for (int_vec_iter bt = curr->branch_index.begin();
 					bt != curr->branch_index.end(); ++bt)
 				curr_branch_cnt[*bt]++;
@@ -1423,7 +1383,7 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 				for (state_pVec_iter st = indiv->state_list.begin(); 
 						st != indiv->state_list.end(); ++st, ++vt) {
 					keyVal_t hash = (*st)->getHash();
-					retVal_t ret = nxtStateMap.insert(make_pair(hash, *st));
+					retMap_t ret = nxtStateMap.insert(make_pair(hash, *st));
 					if (ret.second == false) {
 						(ret.first->second)->hit_count++;
 					}
