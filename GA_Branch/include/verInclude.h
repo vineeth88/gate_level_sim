@@ -32,6 +32,11 @@
 	#define rstInput 1
 	#include "b12Int.h"
 
+#elif defined(__b13)
+	#define benchCkt "b13"
+	#define benchDir "b13/"
+	#include "b13Int.h"
+
 #elif defined(__b14)
 	#define benchCkt "b14"
 	#define benchDir "b14/"

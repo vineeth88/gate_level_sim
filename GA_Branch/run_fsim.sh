@@ -7,7 +7,7 @@ cp $1.eqf $1_$2.eqf
 cp $1.init $1_$2.init
 #../exec/fsimNew -io $1_$2 > $1_$2.out
 ../exec/fsimNew -io $1_$2 > $1_$2.out
-rm $1_$2.lev $1_$2.eqf $1_$2.init $1_$2.frs
+rm $1_$2.lev $1_$2.eqf $1_$2.init $1_$2.frs $1_$2.ufl $1_$2.excited*
 cd ..
 echo "Faultsim complete"
 

@@ -1,4 +1,4 @@
-BENCH = b10
+BENCH = b07
 DEFINE_BENCH = -D__${BENCH}
 BENCH_DIR = ./lib/${BENCH}
 LIBS =  ${BENCH_DIR}/cpp/Vtop__ALL.a
@@ -14,10 +14,11 @@ SRC_DIR = ./src
 EXEC_DIR = ./exec
 INCLUDE = -I$(SYSTEMPERL) -I$(VERILATOR_INCLUDE) -I$(INCL_DIR)
 
-DEBUG = -g -O0 -DMEM_ALLOC_DBG_ON
+DEBUG = -g -DMEM_ALLOC_DBG_ON
+OPT = -O3 
 #DEBUG = -g -D_DBG_DEST_CALL_
-CFLAGS += ${DEBUG}
-
+#CFLAGS += ${DEBUG}
+CFLAGS += $(OPT)
 all: gen
 
 OBJS_TEST = testSim.o ${BENCH}Int.o \
@@ -35,7 +36,7 @@ TARGET_GEN = ${BENCH}Sim
 #DEFINE_GEN = -D_STAGE1_OLD_FN_
 
 OBJS_METRIC = circuit.o rtLevelSim.o \
-${BENCH}Int.o \
+${BENCH}Int.o graphLib.o \
 verilated.o SpCoverage.o \
 newMetric.o
 TARGET_METRIC = ${BENCH}CompMetric
@@ -44,10 +45,10 @@ test: $(OBJS_TEST)
 	$(CXX) $(OBJS_TEST) $(INCLUDE) $(LIBS) -o $(EXEC_DIR)/$(TARGET_MAIN) -lm -lstdc++ 2>&1 | c++filt
 
 gen: $(OBJS_GEN)
-	$(CXX) $(OBJS_GEN) $(INCLUDE) $(LIBS) -o $(EXEC_DIR)/$(TARGET_GEN) -pg -lm -lstdc++ 2>&1 | c++filt
+	$(CXX) $(OBJS_GEN) $(INCLUDE) $(LIBS) -o $(EXEC_DIR)/$(TARGET_GEN) -lm -lstdc++ 2>&1 | c++filt
 
 proc: $(OBJS_METRIC)
-	$(CXX) $(OBJS_METRIC) $(INCLUDE) $(LIBS) -o $(EXEC_DIR)/$(TARGET_METRIC) -pg -lm -lstdc++ 2>&1 | c++filt
+	$(CXX) $(OBJS_METRIC) $(INCLUDE) $(LIBS) -o $(EXEC_DIR)/$(TARGET_METRIC) -lm -lstdc++ 2>&1 | c++filt
 
 # All object files below
 
@@ -75,10 +76,10 @@ verilated.o:
 SpCoverage.o:
 	$(CXX) $(CFLAGS) -I. -MMD $(INCLUDE) -DVL_PRINTF=printf -DVM_TRACE=0 -DVM_COVERAGE=0 -DVL_DEBUG=1 -c -o SpCoverage.o ${SYSTEMPERL}/SpCoverage.cpp
 
-${BENCH}Int.o: $(INCL_DIR)/incl.h $(INCL_DIR)/${BENCH}Int.h $(SRC_DIR)/${BENCH}Int.cpp $(INCL_DIR)/vType.h $(INCL_DIR)/verInclude.h
+${BENCH}Int.o: $(INCL_DIR)/incl.h $(INCL_DIR)/${BENCH}Int.h $(SRC_DIR)/${BENCH}Int.cpp $(INCL_DIR)/circuit.h $(INCL_DIR)/verInclude.h
 	$(CXX) $(CFLAGS) -I. -MMD $(INCLUDE) -DVL_PRINTF=printf -DVM_TRACE=0 -DVM_COVERAGE=0 -DVL_DEBUG=1 -c -o ${BENCH}Int.o $(SRC_DIR)/${BENCH}Int.cpp
 
-graphLib.o: $(SRC_DIR)/graphLib.cpp $(INCL_DIR)/graphLib.h $(INCL_DIR)/verInclude.h $(INCL_DIR)/incl.h $(INCL_DIR)/vType.h
+graphLib.o: $(SRC_DIR)/graphLib.cpp $(INCL_DIR)/graphLib.h $(INCL_DIR)/verInclude.h $(INCL_DIR)/incl.h $(INCL_DIR)/circuit.h
 	$(CXX) $(CFLAGS) -I. -MMD $(INCLUDE) -DVL_PRINTF=printf -DVM_TRACE=0 -DVM_COVERAGE=0 -DVL_DEBUG=1 -c -o graphLib.o $(SRC_DIR)/graphLib.cpp
 
 newMetric.o: $(INCL_DIR)/circuit.h $(INCL_DIR)/incl.h $(INCL_DIR)/rtLevelSim.h $(INCL_DIR)/${BENCH}Int.h $(SRC_DIR)/newMetric.cpp

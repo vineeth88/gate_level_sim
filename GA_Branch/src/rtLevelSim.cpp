@@ -75,10 +75,13 @@ void rtLevelCkt :: simOneVector(const vecIn_t& vecIn) {
 void rtLevelCkt :: simMultiVector(const vecIn_t& inputVec) {
 	
 	sim_reset_clock(cktVar);
-
+	
     int time_idx = 0;                                                           
 	int vec_len = (inputVec.length()/NUM_INPUT_BITS);
 	int cycle_cnt = 0;
+
+	for (int idx = 0; idx < NUM_BRANCH; ++idx)
+		cktVar->__VlSymsp->__Vcoverage[idx] = 0;
 
     while ((time_idx < (2*vec_len)) && !Verilated::gotFinish()) {
         if (cktVar->clock == 0) {

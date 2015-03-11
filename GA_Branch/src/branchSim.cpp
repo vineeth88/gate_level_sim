@@ -11,7 +11,12 @@
 #define RANDOM_SEED
 #define GA_FIND_TOP_INDIV
 //#define FITNESS_DBG_ON
+#define DEBUG_PRINT_INDIV_OFF
+//#define FULL_STATE_VARS
+//#define B14_ROUND_DEBUG
 
+#define PRINT_ROUND_OFF
+#define ALL_BRANCH_METRIC
 // ==================== Global Variables ============================
 int FAULT_COVERAGE = 0;
 
@@ -42,6 +47,9 @@ typedef stateIdxMap_t::iterator stateIdxMap_iter;
 typedef map<string, int> varMap_t;
 typedef varMap_t::iterator varMap_iter;
 typedef vector<varMap_t> varMapVec_t;
+typedef vector<varMapVec_t> varMapVec2_t;
+
+typedef vector<double> dbl_vec;
 
 class paramObj_t { 
 	
@@ -65,8 +73,9 @@ class paramObj_t {
 		int 		startIdx;		// Start index of stage 2
 		int_vec		resetIndices;
 
-	varMapVec_t 	varMapArr;
+	varMapVec2_t 	varMapArr;
 		int_vec		varWtArr;
+		dbl_vec 	branchFactor;
 
 		int_vec		branchHit;
 		int_vec 	totalBranchHit;
@@ -98,13 +107,15 @@ class paramObj_t {
 			startIdx = 0;
 			resetIndices = int_vec();
 
-			varMapArr = varMapVec_t(NUM_VARS);
+			varMapVec_t tmpVec(NUM_VARS);
+			varMapArr = varMapVec2_t(NUM_BRANCH+1, tmpVec);
 			varWtArr = int_vec(NUM_VARS, 0);
+			branchFactor = dbl_vec(NUM_BRANCH, 0.0);
 
 			branchHit = int_vec(NUM_BRANCH, 0);
 			lastBranchHit = int_vec(NUM_BRANCH, 0);
 			totalBranchHit = int_vec(NUM_BRANCH, 0);
-
+			
 			rtlCkt = NULL;
 			cktBrGraph = NULL;
 			cktCovGraph = NULL;
@@ -132,6 +143,8 @@ class paramObj_t {
 
 
 // ===================== Function declarations ======================
+double get_time();
+
 void readExclBranchList(char[]);
 int readBranchGraph(covGraph_t&, brGraph_t&);
 
@@ -148,22 +161,33 @@ void printVec(int_vec&);
 void printVectorSet(const vecIn_t&);
 
 double computeMetric(paramObj_t*);
+double computeMetricNew(paramObj_t*);
 
 int main(int argc, char* argv[]) {
+
+	double start_time = get_time();
+	
+	double total_stage1_time = 0.0;
+	double total_stage2_time = 0.0;
+	double total_metric_time = 0.0;
+	double total_misc_time = 0.0;
 
 	uint32_t seed;
 	#ifdef RANDOM_SEED
 	seed = time(NULL);
 	cout << "Seed: " << seed << endl;
+//	#if defined (__b10)
+//		seed = 1424033984;
+//	#endif
 	srand(seed);
-	#else
-	#if defined (__b12)
-		seed = 1422414827;
-	#elif defined (__b10)
-		seed = 1422647276;
-	#else
-		seed = 1422647276;
-	#endif
+//	#else
+//	#if defined (__b12)
+//		seed = 1422414827;
+//	#elif defined (__b10)
+//		seed = 1422647276;
+//	#else
+//		seed = 1422647276;
+//	#endif
 	#endif
 
 	rnd_seed = seed;
@@ -217,6 +241,7 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
+
 	if(FAULT_COVERAGE) 
 		cout << "\nExecuting GA for MAX FAULT COVERAGE" << endl;
 	else
@@ -243,7 +268,7 @@ int main(int argc, char* argv[]) {
 		COVGRAPH_PRESENT = 1;
 	
 	// branch transition graph (brGraph) file
-	brGraph_t* brGraphObj;
+	brGraph_t* brGraphObj = NULL;
 	if (COVGRAPH_PRESENT) {
 		brGraphObj = new brGraph_t;
 		sprintf(brGraphObj->fName, "%s/%s.btg", cktDir, benchCkt);
@@ -260,32 +285,52 @@ int main(int argc, char* argv[]) {
 	if (COVGRAPH_PRESENT) 
 		paramObj->cktCovGraph = covGraphObj;
 
-	if (BRGRAPH_PRESENT) 
+	if (BRGRAPH_PRESENT && brGraphObj) 
 		paramObj->cktBrGraph = brGraphObj;
 
 	paramObj->totalBranchHit = int_vec(NUM_BRANCH, 0);
 	paramObj->resetIndices = int_vec();
+	
+	double parse_time = get_time();
+	total_misc_time += (parse_time - start_time);
 
 	/* Start: Stage 1 */
 	Stage1_GenerateVectors(paramObj);
 	
+	double stage1_time = get_time();
+	total_stage1_time += (stage1_time - parse_time);
 	/* Start: Stage 2 (If graph present) */
 	if (BRGRAPH_PRESENT) 
 		Stage2_GenerateVectors(paramObj); 
+	
+	double stage2_time = get_time();
+	total_stage2_time += (stage2_time - stage1_time);
 
 	/* Compute branch coverage after iteration */
 	for (int br = 0; br < NUM_BRANCH; ++br)
 		paramObj->totalBranchHit[br] += paramObj->branchHit[br];
 	
-	/* Fault Simulate vectors */
-	int cnt = FAULT_COVERAGE;
-	double newMetric = 0.0;
-	
-	while(cnt) {
+	cout << "\nParse time: " << parse_time - start_time << endl
+		 << "\nC0-S1 time: " << stage1_time - parse_time << endl
+		 << "\nC0-S2 time: " << stage2_time - stage1_time << endl;
 
+	int cnt = FAULT_COVERAGE;
+	#if defined(__b14)
+		if (FAULT_COVERAGE)
+			cnt = 10;
+		else
+			cnt = 0;
+	#endif
+	double newMetric = 0.0;
+
+	while(cnt) {
+		start_time = get_time();
+
+		newMetric = computeMetricNew(paramObj);
+		cout << endl;
 		newMetric = computeMetric(paramObj);
 		cout << "\nnewMetric Coverage: " << newMetric << endl;
-
+	
 		/* Add all states from previous iteration into stateTable */
 		for (int idx = 0; (uint)idx < paramObj->stateList.size(); ++idx) {
 			string stateStr = paramObj->stateList[idx]->getHash();
@@ -297,27 +342,35 @@ int main(int argc, char* argv[]) {
 			else
 				paramObj->stateTable[stateStr].push_back(idx);
 		}
-
-		/* Compute new start index & add it to resetIndices */
+		
 		paramObj->startIdx = paramObj->stateList.size();
 		paramObj->resetIndices.push_back(paramObj->startIdx);
 
+		double metric_time = get_time();
+		total_metric_time += (metric_time - start_time);
+
 		Stage1_GenerateVectors(paramObj);
+		stage1_time = get_time();
+		total_stage1_time += (stage1_time - metric_time);
+
 		if (BRGRAPH_PRESENT)
 			Stage2_GenerateVectors(paramObj);
+		stage2_time = get_time();
+		total_stage2_time += (stage2_time - stage1_time);
 
 		for (int br = 0; br < NUM_BRANCH; ++br)
 			paramObj->totalBranchHit[br] += paramObj->branchHit[br];
 
 		--cnt;
-
+		cout << paramObj->inputVec.length() / NUM_INPUT_BITS << endl;
 	}
 
 	#ifdef MEM_ALLOC_DBG_ON
 	cout << "gaIndiv_t:  " << gaIndiv_t::mem_alloc_cnt << endl
 		 << "state_t:    " << state_t::mem_alloc_cnt << endl;
 	#endif
-
+	
+	double end_time = get_time();
 	/* Print final branch coverage */
 	cout << "\nFinal branch coverage: " << endl;
 	printCnt(paramObj->totalBranchHit);
@@ -325,6 +378,8 @@ int main(int argc, char* argv[]) {
 	/* Print vectors to file */
 	printVectorSet(paramObj->inputVec);
 	
+	newMetric = computeMetricNew(paramObj);
+	cout << endl;
 	newMetric = computeMetric(paramObj);
 	cout << "\nnewMetric Coverage: " << newMetric << endl;
 	
@@ -336,6 +391,20 @@ int main(int argc, char* argv[]) {
 		 << "state_t:    " << state_t::mem_alloc_cnt << endl;
 	#endif
 	
+	total_misc_time += ( get_time() - end_time);
+	
+	double total_exec_time = total_metric_time
+							+ total_stage1_time
+							+ total_stage2_time
+							+ total_misc_time;
+
+	cout << "\n Times:" << endl 
+		 << "Stage1: " << total_stage1_time << endl  
+		 << "Stage2: " << total_stage2_time << endl 
+		 << "Metric: " << total_metric_time << endl 
+		 << "Misc: " << total_misc_time << endl
+		 << "Exec: " << total_exec_time << endl;
+
 	return 0;
 	
 }
@@ -595,13 +664,14 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	/* Parameters */
 	int NUM_GEN	= paramObj->NUM_GEN_1;
 	int POP_SIZE = paramObj->POP_SIZE_1;
+
 	int VEC_LEN	= paramObj->INDIV_LEN_1 / NUM_INPUT_BITS;
 	int MAX_ROUNDS = paramObj->MAX_ROUNDS_1;
 	int startIdx = paramObj->startIdx;
 	stateIdxMap_t& stateTable = paramObj->stateTable;
 	state_pVec& pStateList = paramObj->stateList;
 
-	int vec_offset = 0;
+//	int vec_offset = 0;
 
 	double WT_FIT_STATE = 0.4;
 	double WT_FIT_COV = 0.3;
@@ -611,16 +681,35 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	int WT_NEW_BRANCH = 2000;
 	int NEW_STATE_FIT = NUM_STATE_BITS;
 
+	int lg_pop_size = 0;
+	for (int pop_size = POP_SIZE; pop_size > 0;) {
+		lg_pop_size++;
+		pop_size >>= 1;
+	}
+	lg_pop_size--;
+
 	cout << "\nGA Stage 1: " << endl
 		<< POP_SIZE << " individuals / " << VEC_LEN << " vectors" << endl;
+	
+	cout << lg_pop_size << endl;
 
 	/* Initialize rtLevelCkt */
 	Vtop *cktVar = new Vtop;
 	rtLevelCkt *rtlCkt = new rtLevelCkt(cktVar);
 	int_vec branch_counters(NUM_BRANCH, 0);
+	
+	#ifdef B14_ROUND_DEBUG
+	Vtop *dbgCktVar = new Vtop;
+	rtLevelCkt *dbgRtlCkt = new rtLevelCkt(dbgCktVar);
+	int_vec dbg_branch_count(NUM_BRANCH, 0);
+	#endif
 
 	vecIn_t rstVec(NUM_INPUT_BITS, '0');
 	rstVec[NUM_INPUT_BITS-1] = '1';
+	#if defined(__b13)
+	rstVec[NUM_INPUT_BITS-1] = '0';
+	#endif
+
 	string rstStateStr (NUM_STATE_BITS, '0');
 	rtlCkt->setCktState(rstStateStr);
 	rtlCkt->resetCounters();
@@ -634,15 +723,18 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	state_pVec startPool;
 	startPool.push_back(rstState);
 
+	#ifndef PRINT_ROUND_OFF
 	cout << "Reset state: " << endl
 		 << rstState->getState() << endl;
+	#endif
 
 	gaPopulation_t stage0Pop(POP_SIZE, VEC_LEN);
 	/*	Init population with one of the states in the pool 
 		of start states and string of random vectors	*/
 	stage0Pop.initPopulation(startPool);
 
-	stateMap_t currStateMap, glStateMap;
+//	stateMap_t glStateMap;
+	stateSet_t currStateMap, glStateMap; 
 	currStateMap.clear();
 	int prevMaxCov = 0;
 
@@ -674,31 +766,15 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			rtlCkt->resetCounters();
 			indiv->simCkt(rtlCkt);
 
-//			indiv->printIndiv(0);
-
 			/* Add states to stateMap	*/
 			for (state_pVec_iter st = indiv->state_list.begin(); 
 					st != indiv->state_list.end(); ++st) {
 				state_t *curr = *st;
 				keyVal_t hash_val_ = curr->getHash();
-				retVal_t ret = currStateMap.insert(make_pair(hash_val_, curr));
+				retVal_t ret = currStateMap.insert(hash_val_);
 
-				curr->hit_count = 1;
-				/*	If the key for the state is present	=>	New state was not found
-					If the value for the key = NULL	
-					=> 	The state was found in the previous cycle
-					Therefore, set the new found state as the value for that key.
-					Else => The state was found in this cycle
-					Therefore, just increment the count of that state		*/
-				if (ret.second == false) {
-					if (ret.first->second)
-						(ret.first->second)->hit_count++;
-					else 
-						(ret.first->second) = curr;
-				}
-				else {
+				if (ret.second)
 					new_state = true;
-				}
 			}
 
 			indiv->num_branch = computeBranches(indiv->branch_cov);
@@ -711,12 +787,13 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			avgCov += indiv->num_branch;
 
 		}
-
-		cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
-			<< "Max Coverage: " << maxCov << endl;
-
-		avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+	
+//		avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+		avgCov = avgCov >> lg_pop_size;
 		improv_cov = (maxCov >= prevMaxCov);
+
+//		cout << "Avg Coverage: " << avgCov << endl
+//			<< "Max Coverage: " << maxCov << endl;
 
 		/* Compute Fitness	*/
 		for (int ind = 0; ind < POP_SIZE; ++ind) {
@@ -732,7 +809,9 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 				for (int br = 0; br < NUM_BRANCH; ++br) {
 					if (indiv->branch_cov[br] && (paramObj->totalBranchHit[br] == 0) 
 							&& (exclBranchList[br] == 0)) {
+						#ifndef PRINT_ROUND_OFF
 						cout << ind << " reached new branch " << br << endl;
+						#endif
 						fitness_branch -= WT_NEW_BRANCH;
 					}
 				}
@@ -770,12 +849,12 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			}
 
 			/* Combining all fitness values	*/
-//			#ifdef FITNESS_DBG_ON
+			#ifdef FITNESS_DBG_ON
 			cout << "[" << ind << "]\t" 
 				 << (fitness_cov * WT_FIT_COV) << " "
 				 << (fitness_branch * WT_FIT_BRANCH) << " "
 				 << (fitness_state * WT_FIT_STATE) << endl;
-//			#endif
+			#endif
 			indiv->fitness 
 				= (fitness_cov * WT_FIT_COV) 
 				+ (fitness_branch * WT_FIT_BRANCH)
@@ -791,20 +870,15 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 		if (!gaTerminate) {
 
-			for (stateMap_iter st = currStateMap.begin(); 
-					st != currStateMap.end(); ++st) 
-				currStateMap[st->first] = NULL;
-
-#ifndef GA_FIND_TOP_INDIV
-			//			for (int ind = 0; ind < POP_SIZE; ++ind) {
-			//				(stage0Pop.indiv_vec[ind])->printIndiv(1);
-			//			}
+			#ifndef GA_FIND_TOP_INDIV
 			std::sort(stage0Pop.indiv_vec.begin(), stage0Pop.indiv_vec.end(), compCoverage);
+			
+			#ifndef PRINT_ROUND_OFF
 			cout << "Fitness: " << (stage0Pop.indiv_vec[0])->fitness << "\t | " << (stage0Pop.indiv_vec[0])->index << endl;
+			#endif
 			gaIndiv_t *tmp = new gaIndiv_t(*(stage0Pop.indiv_vec[0]));
-#endif
 
-#ifdef GA_FIND_TOP_INDIV
+			#else
 			gaIndiv_t *indiv = stage0Pop.indiv_vec[0];
 
 			for (gaIndiv_pVec_iter gt = stage0Pop.indiv_vec.begin(); 
@@ -813,9 +887,11 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 				if (compFitness(*gt, indiv))
 					indiv = *gt;
 			}
+			#ifndef PRINT_ROUND_OFF
 			cout << "Fitness: " << indiv->fitness << "\t | " << indiv->index << endl;
+			#endif
 			gaIndiv_t *tmp = new gaIndiv_t(*indiv);
-#endif
+			#endif
 
 			topIndiv_vec.push_back(tmp);
 
@@ -823,8 +899,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			prevMaxCov = maxCov;
 		}
+		#ifndef PRINT_ROUND_OFF
 		else
 			cout << "Terminating after gen " << gen << endl;
+		#endif
 
 	}
 	
@@ -840,16 +918,16 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	}
 
 	/* N.logN for sort instead of N.TOP_INDIV for finding TOP_INDIV top indivs*/
-#ifndef GA_FIND_TOP_INDIV
+	#ifndef GA_FIND_TOP_INDIV
 	std::sort(stage0Pop.indiv_vec.begin(), stage0Pop.indiv_vec.end(), compCoverage);
 
 	topIndiv_vec.push_back(stage0Pop.indiv_vec[0]);
 	stage0Pop.indiv_vec[0] = NULL;
-#endif
-
-#ifdef GA_FIND_TOP_INDIV
+	#else
 	gaIndiv_t *tmp = stage0Pop.indiv_vec[0];
+	#ifndef PRINT_ROUND_OFF
 	cout << "Fitness: " << tmp->fitness << "\t | " << tmp->index << endl;
+	#endif
 	int max_idx = 0, idx = 0;
 	for (gaIndiv_pVec_iter gt = stage0Pop.indiv_vec.begin(); 
 			gt != stage0Pop.indiv_vec.end(); ++gt, ++idx) {
@@ -861,7 +939,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 	topIndiv_vec.push_back(stage0Pop.indiv_vec[max_idx]);
 	stage0Pop.indiv_vec[max_idx] = NULL;
-#endif
+	#endif
 
 	/* Sorting to calculate the best indiv among the N generations */
 	std::sort(topIndiv_vec.begin(), topIndiv_vec.end(), compFitness);
@@ -891,10 +969,15 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	indiv->simCkt(rtlCkt);
 
 	//	indiv->printIndiv(1);
+//	#if defined(__b14)
+//	if (indiv->max_index % 2 == 0)
+//		indiv->max_index--;
+//	#endif
+
 	for (int st = 0; st <= indiv->max_index; ++st) {	
 		state_t *curr = indiv->state_list[st];
 		keyVal_t hash_val_ = curr->getHash();
-		glStateMap.insert(make_pair(hash_val_, curr));
+		glStateMap.insert(hash_val_);
 
 		for (int_vec_iter bt = curr->branch_index.begin();
 				bt != curr->branch_index.end(); ++bt)
@@ -904,17 +987,55 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	state_t* st = indiv->state_list[indiv->max_index];
 	startVec = rstVec + indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
 	startPool.push_back(st);
+	#ifdef B14_ROUND_DEBUG
+	cout << "Last branch indices : "<< endl;
+	printVec(st->branch_index);
+	cout << endl;
+	#endif
 
-	vec_offset += 1 + indiv->max_index + 1;
-	cout << "Size: " << startVec.length() << " Off: " << vec_offset << endl;
-	assert(startVec.size() == (vec_offset * NUM_INPUT_BITS));
+//	vec_offset += 1 + indiv->max_index + 1;
+//	cout << "Size: " << startVec.length() << " Off: " << vec_offset << endl;
+//	assert(startVec.size() == (vec_offset * NUM_INPUT_BITS));
 
 	cout << "After Round 0: " << endl
-		 << st->getState()
+//		 << st->getState()
 		 << " --------------- " << endl;
 
+	#ifndef PRINT_ROUND_OFF
 	printCnt(branch_counters);
 	cout << " --------------- " << endl;
+	#endif
+
+//	#if defined(__b14)
+//	rtlCkt->resetCounters();
+//	rtlCkt->setCktState(rstStateStr);
+//	rtlCkt->simMultiVector(startVec);
+//	rtlCkt->getBranchCounters(branch_counters);
+//	#endif
+
+	#ifdef B14_ROUND_DEBUG
+	dbgRtlCkt->resetCounters();
+	dbgRtlCkt->setCktState(rstStateStr);
+	dbgRtlCkt->simMultiVector(startVec);
+	dbgRtlCkt->getBranchCounters(dbg_branch_count);
+	
+	cout << "Debug Counters: " << endl;
+	printCnt(dbg_branch_count);
+	cout << " --------------- " << endl;
+
+	for(int dbg_br = 0; dbg_br < NUM_BRANCH; ++dbg_br) {
+		if (dbg_branch_count[dbg_br] != branch_counters[dbg_br])
+			//exit(-1);
+			assert(0);
+	}
+	dbg_branch_count.clear();
+
+	cout << "End State: 0" << endl
+		 << dbgRtlCkt->getCktState() << endl
+		 << endl;
+	
+	printVectorSet(startVec);
+	#endif
 
 	bool Rnd_terminate = false;
 
@@ -923,7 +1044,7 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		if (!exclBranchList[br] && (branch_counters[br] == 0))
 			all_done = false;
 	}
-
+	
 	for (int round = 1; !all_done && round < MAX_ROUNDS && !Rnd_terminate; ++round) {
 
 		gaPopulation_t stage0Pop(POP_SIZE, VEC_LEN);
@@ -931,14 +1052,29 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			of start states and string of random vectors	*/
 		stage0Pop.initPopulation(startPool);
 
-		stateMap_t currStateMap;
+		#ifdef B14_ROUND_DEBUG
+		cout << "Start state: " << round << endl
+			 << startPool[0]->getState() << endl
+			 << endl;
+		#endif
+	
+//		#if defined(__b14)
+//		int_vec dupl_branch_cnt(NUM_BRANCH, 0);
+//		for(int_vec_iter dupl = startPool[0]->branch_index.begin();
+//				dupl != startPool[0]->branch_index.end(); ++dupl) 
+//			dupl_branch_cnt[*dupl]++;
+//		#endif
+
+		stateSet_t currStateMap;
 		//stateMap_t currStateMap = glStateMap;
 		int prevMaxCov = 0;
 
 		bool gaTerminate = false;
 		for (int gen = 0; !gaTerminate && (gen < NUM_GEN); ++gen) {
 
+			#ifndef PRINT_ROUND_OFF
 			cout << "GEN " << gen << endl << endl;
+			#endif
 
 			bool improv_cov = false; 
 			bool new_state = false;
@@ -958,27 +1094,10 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 						st != indiv->state_list.end(); ++st) {
 					state_t *curr = *st;
 					keyVal_t hash_val_ = curr->getHash();
-					retVal_t ret = currStateMap.insert(make_pair(hash_val_, curr));
+					retVal_t ret = currStateMap.insert(hash_val_);
 
-					curr->hit_count = 1;
-					/*	If the key for the state is present	=>	New state was not found
-
-						If the value for the key = NULL	
-						=> The state was found in the previous cycle. 
-						Therefore, set the new found state as the value for that key.
-
-						Else => The state was found in this cycle
-						Therefore, just increment the count of that state		*/
-
-					if (ret.second == false) {
-						if (ret.first->second)
-							(ret.first->second)->hit_count++;
-						else 
-							(ret.first->second) = curr;
-					}
-					else {
+					if (ret.second)
 						new_state = true;
-					}
 				}
 
 				indiv->num_branch = computeBranches(indiv->branch_cov);
@@ -991,10 +1110,11 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 			}
 
-			cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
-				<< "Max Coverage: " << maxCov << endl;
-
-			avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+//			cout << "Avg Coverage: " << (double)avgCov / (double)POP_SIZE << endl
+//				<< "Max Coverage: " << maxCov << endl;
+//
+//			avgCov = (fitness_t)((double)avgCov / (double)POP_SIZE + 0.5);
+			avgCov = avgCov >> lg_pop_size;
 			improv_cov = (maxCov >= prevMaxCov);
 
 			/* Compute Fitness	*/
@@ -1060,55 +1180,60 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 			gaTerminate = (gen == NUM_GEN - 1) | (!improv_cov) | (!new_state);
 
 			if (!gaTerminate) {
-
-				for (stateMap_iter st = currStateMap.begin(); 
-						st != currStateMap.end(); ++st) 
-					currStateMap[st->first] = NULL;
-
 				stage0Pop.gaEvolve();
-
 				prevMaxCov = maxCov;
 			}
 			else {
+				#ifndef PRINT_ROUND_OFF
 				cout << "Terminating after gen " << gen << endl;
+				#endif
 				if (prevMaxCov < maxCov)
 					prevMaxCov = maxCov;
 			}
 
 		}
 
-#ifndef GA_FIND_TOP_INDIV
+		#ifndef GA_FIND_TOP_INDIV
 		/* N.logN for sort instead of N.TOP_INDIV for finding TOP_INDIV top indivs*/
 		std::sort(stage0Pop.indiv_vec.begin(), stage0Pop.indiv_vec.end(), compFitness);
 		gaIndiv_t *indiv = stage0Pop.indiv_vec[0];
-#endif
-
-#ifdef GA_FIND_TOP_INDIV
+		#else
 		gaIndiv_t *indiv = stage0Pop.indiv_vec[0];
 		for (gaIndiv_pVec_iter gt = stage0Pop.indiv_vec.begin(); 
 				gt != stage0Pop.indiv_vec.end(); ++gt) {
 			if (compFitness(*gt, indiv))
 				indiv = *gt;
 		}
-#endif
+		#endif
 
+		#ifndef DEBUG_PRINT_INDIV_OFF
 		cout << "Fittest indiv after round " << round << endl;
 		indiv->printIndiv(1);
+		#endif
 
 		int_vec curr_branch_cnt (NUM_BRANCH, 0);
 		bool new_start_state = false;
+//		#if defined(__b14)
+//		if (indiv->max_index % 2)
+//			indiv->max_index--;
+//		#endif
 		for (int st = 0; st <= indiv->max_index; ++st) {	
 			state_t *curr = indiv->state_list[st];
 			keyVal_t hash_val_ = curr->getHash();
-			retVal_t ret = glStateMap.insert(make_pair(hash_val_, curr));
+			retVal_t ret = glStateMap.insert(hash_val_);
 
-			if (ret.second == true) {
+			#ifdef DEBUG_PRINT_INDIV_OFF
+			if (ret.second)
+				new_start_state = true;
+			#else
+			if (ret.second) {
 				cout << "X";
 				new_start_state = true;
 			}
-			else {
+			else 
 				cout << "-";
-			}
+			#endif
+
 			for (int_vec_iter bt = curr->branch_index.begin();
 					bt != curr->branch_index.end(); ++bt)
 				curr_branch_cnt[*bt]++;
@@ -1136,9 +1261,9 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 		startVec += indiv->input_vec.substr(0,NUM_INPUT_BITS*(indiv->max_index+1));
 		
-		vec_offset += indiv->max_index + 1;
-		cout << "Size: " << startVec.size() << " Off: " << vec_offset << endl;
-		assert(startVec.size() == (NUM_INPUT_BITS*vec_offset));
+//		vec_offset += indiv->max_index + 1;
+//		cout << "Size: " << startVec.size() << " Off: " << vec_offset << endl;
+//		assert(startVec.size() == (NUM_INPUT_BITS*vec_offset));
 
 		for (state_pVec_iter st = startPool.begin(); st != startPool.end(); ++st)
 			if (*st != NULL) {
@@ -1150,14 +1275,53 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 		state_t* st = indiv->state_list[indiv->max_index];
 		indiv->state_list[indiv->max_index] = NULL;
 
+		#ifdef B14_ROUND_DEBUG
+		cout << "Last branch indices : "<< endl;
+		printVec(st->branch_index);
+		cout << endl;
+		#endif
+
 		startPool.push_back(st);
 
 		cout << "After Round " << round << " : " << endl
-			 << st->getState()
+		//	 << st->getState()
 			 << " --------------- " << endl;
 
+		#if defined(__b14)
+		rtlCkt->resetCounters();
+		rtlCkt->setCktState(rstStateStr);
+		rtlCkt->simMultiVector(startVec);
+		rtlCkt->getBranchCounters(branch_counters);
+		#endif
+
+		#ifndef PRINT_ROUND_OFF
 		printCnt(branch_counters);
 		cout << " --------------- " << endl;
+		#endif
+
+		#ifdef B14_ROUND_DEBUG
+		dbgRtlCkt->resetCounters();
+		dbgRtlCkt->setCktState(rstStateStr);
+		dbgRtlCkt->simMultiVector(startVec);
+		int_vec dbg_branch_count;
+		dbgRtlCkt->getBranchCounters(dbg_branch_count);
+		
+		cout << "Debug Counters: " << endl;
+		printCnt(dbg_branch_count);
+		cout << " -------------- " << endl;
+
+		for(int dbg_br = 0; dbg_br < NUM_BRANCH; ++dbg_br) {
+			if (dbg_branch_count[dbg_br] != branch_counters[dbg_br]) {
+					printVectorSet(startVec);
+					assert(0);
+				}
+		}
+		dbg_branch_count.clear();
+
+		cout << "End State: " << round << endl
+			 << dbgRtlCkt->getCktState() << endl
+			 << endl;
+		#endif
 
 		if (Rnd_terminate)
 			cout << "Exiting after round " << round << endl;
@@ -1170,6 +1334,8 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 
 	cout << "Final coverage: " << endl;
 	printCnt(branch_cov);
+	cout << "\n#Pre: " << paramObj->inputVec.length() / NUM_INPUT_BITS << endl;
+	cout << "\n#Vec: " << startVec.length() / NUM_INPUT_BITS << endl;
 
 	gaIndiv_t *indiv_ = new gaIndiv_t(0, 
 			startVec.length()/NUM_INPUT_BITS,
@@ -1194,10 +1360,12 @@ void Stage1_GenerateVectors(paramObj_t* paramObj) {
 	}
 	indiv_->state_list = state_pVec(indiv_->vec_length, NULL);
 
-	cout << paramObj->stateList.size() << endl
-		 << startIdx << endl
-		 << vec_offset << endl;
-	assert (paramObj->stateList.size() == (startIdx + vec_offset));
+	cout << "\n#Post: " << paramObj->inputVec.length() / NUM_INPUT_BITS << endl;
+
+//	cout << paramObj->stateList.size() << endl
+//		 << startIdx << endl
+//		 << vec_offset << endl;
+//	assert (paramObj->stateList.size() == (startIdx + vec_offset));
 
 	delete indiv_;
 	delete rstState;
@@ -1237,8 +1405,8 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 	int prev_target_node = 0;
 	for (int num_round = 0; num_round < MAX_ROUNDS; ++num_round) {
 
-		cout << endl 
-			<< "ROUND : " << num_round << " / " << MAX_ROUNDS
+		cout //<< endl 
+			<< "\nROUND : " << num_round << " / " << MAX_ROUNDS
 			//<< endl 
 			<< endl;
 
@@ -1305,8 +1473,8 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 		}
 
 		cout << "Target	: " << target_node //<< endl
-			<< " Level 	: " << target_lvl << endl
-			<< " Path 	: " << target_path << endl;
+			<< "\tLevel : " << target_lvl //<< endl
+			<< "\tPath 	: " << target_path << endl;
 
 		if (target_path.compare("Unreachable")) {
 			if (BranchNumTries[target_node] >= MAX_TRIES) {
@@ -1323,8 +1491,7 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			paramObj->currPath = target_path;
 			Stage2_Core(paramObj, iter_val);
 
-			cout //<< endl 
-				 << "END OF PATH" << endl;
+			cout << "END OF PATH\n";
 
 			for (int br = 0; (uint)br < unCovered.size(); ++br) {
 				if (unCovered[br] == target_node)
@@ -1347,9 +1514,10 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			unCovered = newVec;
 			newVec.clear();
 
+			#ifndef PRINT_ROUND_OFF
 			cout << "unCovered: " << endl;
 			printVec(unCovered);
-//			cout << endl;
+			#endif
 
 			prev_target_node = target_node;
 		}
@@ -1368,7 +1536,9 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 //			}
 
 			cout << endl
+			#ifndef PRINT_ROUND_OFF
 				<< " * * * * * * * * * * * * * " << endl
+			#endif
 				<< "No reachable path. Simulating vector for next state." << endl;
 
 			stateMap_t nxtStateMap = stateMap_t();
@@ -1378,9 +1548,11 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			state_pVec initPool;
 			initPool.push_back(paramObj->stateList.back());
 
+			#ifndef PRINT_ROUND_OFF
 			cout << "Start state: " << endl
 				 << initPool[0]->getState()
 				 << endl;
+			#endif
 
 			nxtStatePop.initPopulation(initPool);
 
@@ -1396,7 +1568,7 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 				for (state_pVec_iter st = indiv->state_list.begin(); 
 						st != indiv->state_list.end(); ++st, ++vt) {
 					keyVal_t hash = (*st)->getHash();
-					retVal_t ret = nxtStateMap.insert(make_pair(hash, *st));
+					retMap_t ret = nxtStateMap.insert(make_pair(hash, *st));
 					if (ret.second == false) {
 						(ret.first->second)->hit_count++;
 					}
@@ -1450,7 +1622,9 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 
 					int lvl = path.length();
 
+					#ifndef PRINT_ROUND_OFF
 					cout << *it << ": " << path << endl;
+					#endif
 					if (path.compare("Unreachable")) {
 						num_paths++;
 						if (target_lvl > lvl) {
@@ -1496,8 +1670,9 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			paramObj->inputVec += nxtVec[max_path_index];
 
 			cout << "Adding vector: " << nxtVec[max_path_index] << endl
-				<< "State: " << endl
-				<< tmpState->getState()
+			#ifndef PRINT_ROUND_OFF
+				<< "State: \n" << tmpState->getState()
+			#endif
 				<< endl; 
 
 			paramObj->lastBranchHit = int_vec(NUM_BRANCH, 0);
@@ -1508,8 +1683,10 @@ void Stage2_GenerateVectors(paramObj_t* paramObj) {
 			paramObj->branch_index = tmpState->branch_index;
 			for (int ind = 0; ind < NUM_BRANCH; ++ind)
 				paramObj->branchHit[ind] += paramObj->lastBranchHit[ind];
+			#ifndef PRINT_ROUND_OFF
 			printCnt(paramObj->lastBranchHit);
 			printCnt(paramObj->branchHit);
+			#endif
 
 			cout << " * * * * * * * * * * * * * * * * * * * * " << endl << endl;
 		}
@@ -1598,7 +1775,7 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 			
 			int path_idx = 0, exit_state_loop = 0;
 			int curr_node = start_node;
-			int indiv_idx = 0;
+			//int indiv_idx = 0;
 			int_vec state_fit_vec;
 			fitness_t prev_fit = 0;
 
@@ -1689,7 +1866,7 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 
 					/* Else if any other edge was taken */
 					else if (out_node_br.find(*br) != out_node_br.end()) {
-						indiv_idx = path_idx;	
+//						indiv_idx = path_idx;	
 						exit_state_loop = true;
 						state_fit += prev_fit + OUT_EDGE_FITNESS;
 						break;
@@ -1759,7 +1936,9 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 			gaTerminate = true;
 			
 		if (gaTerminate) {
+			#ifndef PRINT_ROUND_OFF
 			cout << "Terminating after GEN " << gen << endl;
+			#endif
 			break;
 		}
 		else {
@@ -1812,8 +1991,9 @@ void Stage2_Core(paramObj_t* paramObj, int start_node) {
 //	cout << "Returning from Stage2_Core" << endl;
 //	printCnt(paramObj->branchHit);
 	
+	#ifndef PRINT_ROUND_OFF
 	cout << paramObj->stateList.back()->getState() << endl;
-
+	#endif
 }
 
 string getPathBFS(brGraph_t* brGraph, int start, int target) {
@@ -1935,6 +2115,19 @@ void printVec(int_vec& vec_) {
 		cout << *vt << " ";
 }
 
+double get_time() {
+   struct rusage ru;
+   struct timeval rtime; 
+
+   getrusage(RUSAGE_SELF, &ru);
+   rtime=ru.ru_utime;
+   double time = (double)rtime.tv_sec + (double)rtime.tv_usec / 1000000.0;
+   rtime = ru.ru_stime;
+   time += (double)rtime.tv_sec + (double)rtime.tv_usec / 1000000.0;
+
+   return time;
+}
+
 void printVectorSet(const vecIn_t& inputVec) {
 
 	ofstream vecOutFile;
@@ -1960,55 +2153,191 @@ void printVectorSet(const vecIn_t& inputVec) {
 }
 
 double computeMetric(paramObj_t* paramObj) {
+	
 	state_pVec& stateList = paramObj->stateList;
-
-	assert(paramObj != NULL);	
-//	assert(paramObj->rtlCkt != NULL);
+	int_vec& branchHit = paramObj->branchHit;
 
 	int_vec startVec = int_vec(VAR_START_ARR, VAR_START_ARR + NUM_VARS);
 	int_vec sizeVec =  int_vec(VAR_SIZE_ARR, VAR_SIZE_ARR + NUM_VARS);
-	
-	typedef map<string, int> varMap_t;
-	typedef vector<varMap_t> varMapVec_t;
-	typedef varMapVec_t::iterator varMapVec_it;
 
-	varMapVec_t& mapVec = paramObj->varMapArr;
-	assert(mapVec.size() == (uint)NUM_VARS);
+	varMapVec_t mapVec(NUM_VARS);
+	varMapVec2_t fullMapVec(NUM_BRANCH, mapVec);
 
-	for (state_pVec_iter st = stateList.begin(); st != stateList.end(); ++st) {
-		
-		string stateStr = (*st)->getState();
+//	#ifdef FULL_STATE_VARS
+//	int stInd = 0;
+//	int_vec& branchHit = paramObj->totalBranchHit;
+//	#else
+//	int stInd = paramObj->startIdx;
+//	int_vec& branchHit = paramObj->branchHit;
+//	#endif
+	int stInd = 0;
+	for (; (uint)stInd < stateList.size(); ++stInd) {
+		state_t *st = stateList[stInd];
+		string stateStr = st->getState();
 		for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {	
 			string varStr = stateStr.substr(startVec[varIdx], sizeVec[varIdx]);
+			for (int_vec_iter it = st->branch_index.begin(); 
+					it != st->branch_index.end(); ++it) {
+				#ifndef ALL_BRANCH_METRIC
+				if (IsBranchLeaf[*it] == 0)
+					continue;
+				#endif
+
+				if (fullMapVec[*it][varIdx].find(varStr) ==
+						fullMapVec[*it][varIdx].end())
+					fullMapVec[*it][varIdx].insert(make_pair(varStr, 1));
+				else
+					++(fullMapVec[*it][varIdx][varStr]);
+			}
 			if (mapVec[varIdx].find(varStr) == mapVec[varIdx].end())
 				mapVec[varIdx].insert(make_pair(varStr, 1));
 			else
 				++(mapVec[varIdx][varStr]);
 		}
-	
 	}
 	
-	double newMetric = 0.0;
-	int_vec& varWt = paramObj->varWtArr;
-	assert(varWt.size() == (uint)NUM_VARS);
-	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
-		if (varWt[varIdx]) 
-			newMetric += ((double) mapVec[varIdx].size()) / ((double) varWt[varIdx]);
-		else
-			newMetric += 0.5;
-		cout << mapVec[varIdx].size() << " " << varWt[varIdx] << endl;
-	}
+	#ifndef PRINT_ROUND_OFF
+	cout << "Total:" << endl;
+	for (int vIdx = 0; vIdx < NUM_VARS; ++vIdx)
+		cout << mapVec[vIdx].size() << " ";
+	cout << endl;
+	#endif
 
-	for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {
-		if (varWt[varIdx] == 0)
-			varWt[varIdx] = 2*mapVec[varIdx].size();
-		else if (mapVec[varIdx].size() > varWt[varIdx]) {
-			varWt[varIdx] *= 2;
-			if (varWt[varIdx] > (1 << sizeVec[varIdx]))
-				varWt[varIdx] = (1 << sizeVec[varIdx]);
+	double newMetric = 0.0;
+	double newMetric2 = 0.0;
+	double newMetric3 = 0.0;
+//	vector<double>& brMetric = paramObj->branchFactor;
+	for (int br = 0; br < NUM_BRANCH; ++br) {
+		if (IsBranchLeaf[br] == 0)
+			continue;
+
+		if (branchHit[br]) {
+			#ifndef PRINT_ROUND_OFF
+			cout << "B: " << br << " " 
+				 << branchHit[br] 
+				 << endl;
+			#endif
+
+			double val = 0.0;
+			double val2 = 0.0;
+			double val3 = 0.0;
+			for (int vIdx = 0; vIdx < NUM_VARS; ++vIdx) {
+				val += ((double)fullMapVec[br][vIdx].size()) 
+							/ mapVec[vIdx].size();
+				val2 += fullMapVec[br][vIdx].size();
+				val3 += fullMapVec[br][vIdx].size() / sizeVec[vIdx];
+				#ifndef PRINT_ROUND_OFF
+				cout << fullMapVec[br][vIdx].size() << " ";
+				#endif
+			}
+			#ifndef PRINT_ROUND_OFF
+			cout << val << " " 
+				// << val / branchHit[br] 
+				 << endl;
+			#endif
+//			brMetric[br] = val;
+			newMetric += val;
+			newMetric2 += val2;
+			newMetric3 += val3;
+		}
+		else {
+			newMetric -= NUM_VARS;
+			newMetric2 -= NUM_STATE_BITS;
 		}
 	}
+	
+	cout << "1: " << newMetric /NUM_BRANCH << endl
+		 << "2: " << newMetric2/NUM_BRANCH << endl
+		 << "3: " << newMetric3/NUM_BRANCH << endl;
+
+//	cout << "1: " << newMetric/NUM_VARS << endl
+//		 << "2: " << newMetric2/NUM_VARS << endl
+//		 << "3: " << newMetric3/NUM_VARS << endl;
 		
-	return newMetric/NUM_VARS;
+//	cout << "1: " << newMetric /NUM_STATE_BITS << endl
+//		 << "2: " << newMetric2/NUM_STATE_BITS << endl
+//		 << "3: " << newMetric3/NUM_STATE_BITS << endl;
+
+	return newMetric2/NUM_BRANCH;
 }
 
+double computeMetricNew(paramObj_t* paramObj) {
+	
+	state_pVec& stateList = paramObj->stateList;
+	int_vec& branchHit = paramObj->branchHit;
+
+	int_vec startVec = int_vec(VAR_START_ARR, VAR_START_ARR + NUM_VARS);
+	int_vec sizeVec =  int_vec(VAR_SIZE_ARR, VAR_SIZE_ARR + NUM_VARS);
+
+	typedef map<string, int> varMap_t;
+	typedef vector<varMap_t> varMapVec_t;
+	typedef varMapVec_t::iterator varMapVec_it;
+	typedef vector<varMapVec_t> varMapVec2_t;
+
+	varMapVec_t mapVec(NUM_VARS);
+	varMapVec2_t fullMapVec(NUM_BRANCH, mapVec);
+
+	uint stInd = 0;
+	for (; stInd < stateList.size(); ++stInd) {
+		state_t *st = stateList[stInd];
+		string stateStr = st->getState();
+		for (int varIdx = 0; varIdx < NUM_VARS; ++varIdx) {	
+			string varStr = stateStr.substr(startVec[varIdx], sizeVec[varIdx]);
+			for (int_vec_iter it = st->branch_index.begin(); 
+					it != st->branch_index.end(); ++it) {
+				if (fullMapVec[*it][varIdx].find(varStr) ==
+						fullMapVec[*it][varIdx].end())
+					fullMapVec[*it][varIdx].insert(make_pair(varStr, 1));
+				else
+					++(fullMapVec[*it][varIdx][varStr]);
+			}
+			if (mapVec[varIdx].find(varStr) == mapVec[varIdx].end())
+				mapVec[varIdx].insert(make_pair(varStr, 1));
+			else
+				++(mapVec[varIdx][varStr]);
+		}
+	}
+	
+	cout << "Total:" << endl;
+	for (int vIdx = 0; vIdx < NUM_VARS; ++vIdx)
+		cout << mapVec[vIdx].size() << " ";
+	cout << endl;
+	
+	double newMetric = 0.0;
+	double negVal = 0.0;
+
+	int num_branch = 0;
+//	vector<double>& brMetric = paramObj->branchFactor;
+	for (int br = 0; br < NUM_BRANCH; ++br) {
+	
+		if (IsBranchLeaf[br] == 0) 
+			continue;
+
+		if (branchHit[br] > 0) {
+//			cout << "B: " << br << " " 
+//				 << endl;
+
+			double val = 0.0;
+			for (int vIdx = 0; vIdx < NUM_VARS; ++vIdx) {
+				val += ((double)fullMapVec[br][vIdx].size()) 
+							/ mapVec[vIdx].size();
+			//	val2 += fullMapVec[br][vIdx].size();
+			//	val3 += fullMapVec[br][vIdx].size() / sizeVec[vIdx];
+//				cout << fullMapVec[br][vIdx].size() << " ";
+			}
+//			cout << endl
+//				 << val << " " 
+//				 << endl;
+			newMetric += val;
+			++num_branch;
+		}
+		else if (branchHit[br] == 0) {
+			negVal += NUM_VARS;
+		}
+	}
+	
+	cout << "1: " << newMetric 
+		 << " - " << negVal 
+		 << " = " << newMetric - negVal << endl;
+	return (newMetric - negVal);
+}

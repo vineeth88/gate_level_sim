@@ -43,7 +43,11 @@ typedef set<int>::iterator int_set_iter;
 
 typedef map<keyVal_t, state_t*> stateMap_t;
 typedef stateMap_t::iterator stateMap_iter;
-typedef pair<stateMap_iter, bool> retVal_t;
+typedef pair<stateMap_iter, bool> retMap_t;
+
+typedef set<keyVal_t> stateSet_t;
+typedef stateSet_t::iterator stateSet_iter;
+typedef pair<stateSet_iter, bool> retVal_t;
 
 typedef vector<state_t*> state_pVec;
 typedef state_pVec::iterator state_pVec_iter;

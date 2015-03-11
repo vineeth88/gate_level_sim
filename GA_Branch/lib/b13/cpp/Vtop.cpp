@@ -114,8 +114,9 @@ void Vtop::__Vconfigure(Vtop__Syms* vlSymsp, bool first) {
     __vlCoverInsert(&(vlSymsp->__Vcoverage[58]), first, "b13.v", 361, 0, ".v", "v_line/b13", "case");
     __vlCoverInsert(&(vlSymsp->__Vcoverage[59]), first, "b13.v", 367, 0, ".v", "v_line/b13", "case");
     __vlCoverInsert(&(vlSymsp->__Vcoverage[60]), first, "b13.v", 313, 0, ".v", "v_line/b13", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[61]), first, "b13.v", 311, 0, ".v", "v_line/b13", "if");
-    __vlCoverInsert(&(vlSymsp->__Vcoverage[62]), first, "b13.v", 308, 0, ".v", "v_line/b13", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[61]), first, "b13.v", 372, 0, ".v", "v_line/b13", "else");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[62]), first, "b13.v", 311, 0, ".v", "v_line/b13", "if");
+    __vlCoverInsert(&(vlSymsp->__Vcoverage[63]), first, "b13.v", 308, 0, ".v", "v_line/b13", "else");
 }
 
 Vtop::~Vtop() {
@@ -174,43 +175,30 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
     VL_DEBUG_IF(VL_PRINTF("    Vtop::_sequent__TOP__1\n"); );
     Vtop* __restrict vlTOPp VL_ATTR_UNUSED = vlSymsp->TOPp;
     // Variables
-    VL_SIG8(__Vdly__v__DOT__S1,2,0);
-    VL_SIG8(__Vdly__v__DOT__S2,1,0);
     VL_SIG8(__Vdly__v__DOT__rdy,0,0);
-    VL_SIG8(__Vdly__v__DOT__mpx,0,0);
     VL_SIG8(__Vdly__v__DOT__confirm,0,0);
-    VL_SIG8(__Vdly__v__DOT__itfc_state,1,0);
-    VL_SIG8(__Vdly__v__DOT__tre,0,0);
     VL_SIG8(__Vdly__v__DOT__tx_end,0,0);
-    VL_SIG8(__Vdly__v__DOT__next_bit,3,0);
-    //char	__VpadToAlign13[1];
-    VL_SIG16(__Vdly__v__DOT__tx_conta,9,0);
+    //char	__VpadToAlign7[1];
     // Body
-    __Vdly__v__DOT__S1 = vlTOPp->v__DOT__S1;
-    __Vdly__v__DOT__S2 = vlTOPp->v__DOT__S2;
     __Vdly__v__DOT__rdy = vlTOPp->v__DOT__rdy;
-    __Vdly__v__DOT__mpx = vlTOPp->v__DOT__mpx;
     __Vdly__v__DOT__confirm = vlTOPp->v__DOT__confirm;
-    __Vdly__v__DOT__itfc_state = vlTOPp->v__DOT__itfc_state;
-    __Vdly__v__DOT__tre = vlTOPp->v__DOT__tre;
     __Vdly__v__DOT__tx_end = vlTOPp->v__DOT__tx_end;
-    __Vdly__v__DOT__next_bit = vlTOPp->v__DOT__next_bit;
-    __Vdly__v__DOT__tx_conta = vlTOPp->v__DOT__tx_conta;
     // ALWAYS at b13.v:298
     if (vlTOPp->reset) {
 	++(vlSymsp->__Vcoverage[48]);
+	vlTOPp->v__DOT__next_bit = 0;
+	vlTOPp->v__DOT__tx_conta = 0;
 	__Vdly__v__DOT__tx_end = 0;
 	vlTOPp->data_out = 0;
-	__Vdly__v__DOT__next_bit = 0;
-	__Vdly__v__DOT__tx_conta = 0;
     } else {
-	++(vlSymsp->__Vcoverage[62]);
+	++(vlSymsp->__Vcoverage[63]);
 	__Vdly__v__DOT__tx_end = 0;
 	vlTOPp->data_out = 1;
 	if (vlTOPp->v__DOT__send_en) {
-	    ++(vlSymsp->__Vcoverage[61]);
+	    ++(vlSymsp->__Vcoverage[62]);
 	    if ((0x68 < (IData)(vlTOPp->v__DOT__tx_conta))) {
 		++(vlSymsp->__Vcoverage[60]);
+		vlTOPp->v__DOT__tx_conta = 0;
 		if (((((((((0 == (IData)(vlTOPp->v__DOT__next_bit)) 
 			   | (2 == (IData)(vlTOPp->v__DOT__next_bit))) 
 			  | (3 == (IData)(vlTOPp->v__DOT__next_bit))) 
@@ -221,63 +209,63 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 		     | (8 == (IData)(vlTOPp->v__DOT__next_bit)))) {
 		    if ((0 == (IData)(vlTOPp->v__DOT__next_bit))) {
 			++(vlSymsp->__Vcoverage[49]);
+			vlTOPp->v__DOT__next_bit = 2;
 			vlTOPp->data_out = 0;
-			__Vdly__v__DOT__next_bit = 2;
 		    } else {
 			if ((2 == (IData)(vlTOPp->v__DOT__next_bit))) {
 			    ++(vlSymsp->__Vcoverage[50]);
+			    vlTOPp->v__DOT__next_bit = 3;
 			    vlTOPp->data_out = (1 & 
 						((IData)(vlTOPp->v__DOT__out_reg) 
 						 >> 7));
-			    __Vdly__v__DOT__next_bit = 3;
 			} else {
 			    if ((3 == (IData)(vlTOPp->v__DOT__next_bit))) {
 				++(vlSymsp->__Vcoverage[51]);
+				vlTOPp->v__DOT__next_bit = 4;
 				vlTOPp->data_out = 
 				    (1 & ((IData)(vlTOPp->v__DOT__out_reg) 
 					  >> 6));
-				__Vdly__v__DOT__next_bit = 4;
 			    } else {
 				if ((4 == (IData)(vlTOPp->v__DOT__next_bit))) {
 				    ++(vlSymsp->__Vcoverage[52]);
+				    vlTOPp->v__DOT__next_bit = 5;
 				    vlTOPp->data_out 
 					= (1 & ((IData)(vlTOPp->v__DOT__out_reg) 
 						>> 5));
-				    __Vdly__v__DOT__next_bit = 5;
 				} else {
 				    if ((5 == (IData)(vlTOPp->v__DOT__next_bit))) {
 					++(vlSymsp->__Vcoverage[53]);
+					vlTOPp->v__DOT__next_bit = 6;
 					vlTOPp->data_out 
 					    = (1 & 
 					       ((IData)(vlTOPp->v__DOT__out_reg) 
 						>> 4));
-					__Vdly__v__DOT__next_bit = 6;
 				    } else {
 					if ((6 == (IData)(vlTOPp->v__DOT__next_bit))) {
 					    ++(vlSymsp->__Vcoverage[54]);
+					    vlTOPp->v__DOT__next_bit = 7;
 					    vlTOPp->data_out 
 						= (1 
 						   & ((IData)(vlTOPp->v__DOT__out_reg) 
 						      >> 3));
-					    __Vdly__v__DOT__next_bit = 7;
 					} else {
 					    if ((7 
 						 == (IData)(vlTOPp->v__DOT__next_bit))) {
 						++(vlSymsp->__Vcoverage[55]);
+						vlTOPp->v__DOT__next_bit = 8;
 						vlTOPp->data_out 
 						    = 
 						    (1 
 						     & ((IData)(vlTOPp->v__DOT__out_reg) 
 							>> 2));
-						__Vdly__v__DOT__next_bit = 8;
 					    } else {
 						++(vlSymsp->__Vcoverage[56]);
+						vlTOPp->v__DOT__next_bit = 9;
 						vlTOPp->data_out 
 						    = 
 						    (1 
 						     & ((IData)(vlTOPp->v__DOT__out_reg) 
 							>> 1));
-						__Vdly__v__DOT__next_bit = 9;
 					    }
 					}
 				    }
@@ -288,40 +276,40 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 		} else {
 		    if ((9 == (IData)(vlTOPp->v__DOT__next_bit))) {
 			++(vlSymsp->__Vcoverage[57]);
+			vlTOPp->v__DOT__next_bit = 1;
 			vlTOPp->data_out = (1 & (IData)(vlTOPp->v__DOT__out_reg));
-			__Vdly__v__DOT__next_bit = 1;
 		    } else {
 			if ((1 == (IData)(vlTOPp->v__DOT__next_bit))) {
 			    ++(vlSymsp->__Vcoverage[58]);
+			    vlTOPp->v__DOT__next_bit = 0;
 			    vlTOPp->data_out = 1;
-			    __Vdly__v__DOT__next_bit = 0;
 			    __Vdly__v__DOT__tx_end = 1;
 			} else {
-			    __Vdly__v__DOT__next_bit 
-				= vlTOPp->v__DOT__next_bit;
 			    ++(vlSymsp->__Vcoverage[59]);
 			}
 		    }
 		}
-		__Vdly__v__DOT__tx_conta = 0;
+	    } else {
+		vlTOPp->v__DOT__tx_conta = (0x3ff & 
+					    ((IData)(1) 
+					     + (IData)(vlTOPp->v__DOT__tx_conta)));
+		++(vlSymsp->__Vcoverage[61]);
 	    }
 	}
     }
-    vlTOPp->v__DOT__tx_conta = __Vdly__v__DOT__tx_conta;
-    vlTOPp->v__DOT__next_bit = __Vdly__v__DOT__next_bit;
     // ALWAYS at b13.v:257
     if (vlTOPp->reset) {
 	++(vlSymsp->__Vcoverage[39]);
+	vlTOPp->v__DOT__tre = 0;
 	vlTOPp->v__DOT__send_en = 0;
 	vlTOPp->v__DOT__out_reg = 0;
-	__Vdly__v__DOT__tre = 0;
 	vlTOPp->error = 0;
     } else {
 	++(vlSymsp->__Vcoverage[47]);
 	if (vlTOPp->v__DOT__tx_end) {
 	    ++(vlSymsp->__Vcoverage[40]);
+	    vlTOPp->v__DOT__tre = 1;
 	    vlTOPp->v__DOT__send_en = 0;
-	    __Vdly__v__DOT__tre = 1;
 	}
 	if (vlTOPp->v__DOT__load) {
 	    ++(vlSymsp->__Vcoverage[43]);
@@ -330,8 +318,8 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 		vlTOPp->error = 1;
 	    } else {
 		++(vlSymsp->__Vcoverage[41]);
+		vlTOPp->v__DOT__tre = 1;
 		vlTOPp->v__DOT__out_reg = vlTOPp->data_in;
-		__Vdly__v__DOT__tre = 1;
 		vlTOPp->error = 0;
 	    }
 	}
@@ -348,65 +336,61 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 	    }
 	}
     }
-    vlTOPp->v__DOT__tre = __Vdly__v__DOT__tre;
     // ALWAYS at b13.v:206
     if (vlTOPp->reset) {
 	++(vlSymsp->__Vcoverage[29]);
+	vlTOPp->v__DOT__itfc_state = 0;
 	vlTOPp->v__DOT__load = 0;
 	vlTOPp->v__DOT__send = 0;
 	__Vdly__v__DOT__confirm = 0;
-	__Vdly__v__DOT__itfc_state = 0;
     } else {
 	++(vlSymsp->__Vcoverage[38]);
 	if ((0 == (IData)(vlTOPp->v__DOT__itfc_state))) {
 	    ++(vlSymsp->__Vcoverage[32]);
 	    if (vlTOPp->v__DOT__shot) {
 		++(vlSymsp->__Vcoverage[30]);
+		vlTOPp->v__DOT__itfc_state = 1;
 		vlTOPp->v__DOT__load = 1;
 		__Vdly__v__DOT__confirm = 0;
-		__Vdly__v__DOT__itfc_state = 1;
 	    } else {
 		++(vlSymsp->__Vcoverage[31]);
+		vlTOPp->v__DOT__itfc_state = 0;
 		__Vdly__v__DOT__confirm = 0;
-		__Vdly__v__DOT__itfc_state = 0;
 	    }
 	} else {
 	    if ((1 == (IData)(vlTOPp->v__DOT__itfc_state))) {
 		++(vlSymsp->__Vcoverage[33]);
+		vlTOPp->v__DOT__itfc_state = 2;
 		vlTOPp->v__DOT__load = 0;
 		vlTOPp->v__DOT__send = 1;
-		__Vdly__v__DOT__itfc_state = 2;
 	    } else {
 		if ((2 == (IData)(vlTOPp->v__DOT__itfc_state))) {
 		    ++(vlSymsp->__Vcoverage[34]);
+		    vlTOPp->v__DOT__itfc_state = 3;
 		    vlTOPp->v__DOT__send = 0;
-		    __Vdly__v__DOT__itfc_state = 3;
 		} else {
 		    if ((3 == (IData)(vlTOPp->v__DOT__itfc_state))) {
 			++(vlSymsp->__Vcoverage[36]);
 			if (vlTOPp->v__DOT__tx_end) {
 			    ++(vlSymsp->__Vcoverage[35]);
+			    vlTOPp->v__DOT__itfc_state = 0;
 			    __Vdly__v__DOT__confirm = 1;
-			    __Vdly__v__DOT__itfc_state = 0;
 			}
 		    } else {
-			__Vdly__v__DOT__itfc_state 
-			    = vlTOPp->v__DOT__itfc_state;
 			++(vlSymsp->__Vcoverage[37]);
 		    }
 		}
 	    }
 	}
     }
-    vlTOPp->v__DOT__itfc_state = __Vdly__v__DOT__itfc_state;
     vlTOPp->v__DOT__tx_end = __Vdly__v__DOT__tx_end;
     // ALWAYS at b13.v:145
     if (vlTOPp->reset) {
 	++(vlSymsp->__Vcoverage[16]);
-	__Vdly__v__DOT__S2 = 0;
+	vlTOPp->v__DOT__S2 = 0;
+	vlTOPp->v__DOT__mpx = 0;
 	__Vdly__v__DOT__rdy = 0;
 	vlTOPp->add_mpx2 = 0;
-	__Vdly__v__DOT__mpx = 0;
 	vlTOPp->v__DOT__shot = 0;
     } else {
 	++(vlSymsp->__Vcoverage[28]);
@@ -414,17 +398,17 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 	    ++(vlSymsp->__Vcoverage[19]);
 	    if (vlTOPp->v__DOT__send_data) {
 		++(vlSymsp->__Vcoverage[17]);
+		vlTOPp->v__DOT__S2 = 1;
 		__Vdly__v__DOT__rdy = 1;
-		__Vdly__v__DOT__S2 = 1;
 	    } else {
 		++(vlSymsp->__Vcoverage[18]);
-		__Vdly__v__DOT__S2 = 0;
+		vlTOPp->v__DOT__S2 = 0;
 	    }
 	} else {
 	    if ((1 == (IData)(vlTOPp->v__DOT__S2))) {
 		++(vlSymsp->__Vcoverage[20]);
+		vlTOPp->v__DOT__S2 = 2;
 		vlTOPp->v__DOT__shot = 1;
-		__Vdly__v__DOT__S2 = 2;
 	    } else {
 		if ((2 == (IData)(vlTOPp->v__DOT__S2))) {
 		    ++(vlSymsp->__Vcoverage[25]);
@@ -432,57 +416,54 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 			++(vlSymsp->__Vcoverage[24]);
 			if (vlTOPp->v__DOT__mpx) {
 			    ++(vlSymsp->__Vcoverage[23]);
-			    __Vdly__v__DOT__mpx = 0;
+			    vlTOPp->v__DOT__mpx = 0;
+			    vlTOPp->v__DOT__S2 = 3;
 			    __Vdly__v__DOT__rdy = 0;
-			    __Vdly__v__DOT__S2 = 3;
 			} else {
 			    ++(vlSymsp->__Vcoverage[22]);
+			    vlTOPp->v__DOT__mpx = 1;
+			    vlTOPp->v__DOT__S2 = 1;
 			    vlTOPp->add_mpx2 = 1;
-			    __Vdly__v__DOT__mpx = 1;
-			    __Vdly__v__DOT__S2 = 1;
 			}
 		    } else {
 			++(vlSymsp->__Vcoverage[21]);
+			vlTOPp->v__DOT__S2 = 2;
 			vlTOPp->v__DOT__shot = 0;
-			__Vdly__v__DOT__S2 = 2;
 		    }
 		} else {
 		    if ((3 == (IData)(vlTOPp->v__DOT__S2))) {
 			++(vlSymsp->__Vcoverage[26]);
-			__Vdly__v__DOT__S2 = 0;
+			vlTOPp->v__DOT__S2 = 0;
 		    } else {
-			__Vdly__v__DOT__S2 = vlTOPp->v__DOT__S2;
 			++(vlSymsp->__Vcoverage[27]);
 		    }
 		}
 	    }
 	}
     }
-    vlTOPp->v__DOT__S2 = __Vdly__v__DOT__S2;
     vlTOPp->v__DOT__confirm = __Vdly__v__DOT__confirm;
-    vlTOPp->v__DOT__mpx = __Vdly__v__DOT__mpx;
     // ALWAYS at b13.v:70
     if (vlTOPp->reset) {
 	++(vlSymsp->__Vcoverage[0]);
+	vlTOPp->v__DOT__S1 = 0;
 	vlTOPp->v__DOT__conta_tmp = 0;
-	__Vdly__v__DOT__S1 = 0;
 	vlTOPp->soc = 0;
 	vlTOPp->v__DOT__send_data = 0;
-	vlTOPp->canale = 0;
 	vlTOPp->load_dato = 0;
 	vlTOPp->mux_en = 0;
+	vlTOPp->canale = 0;
     } else {
 	++(vlSymsp->__Vcoverage[15]);
 	if ((4 & (IData)(vlTOPp->v__DOT__S1))) {
 	    if ((2 & (IData)(vlTOPp->v__DOT__S1))) {
 		if ((1 & (IData)(vlTOPp->v__DOT__S1))) {
 		    ++(vlSymsp->__Vcoverage[9]);
+		    vlTOPp->v__DOT__S1 = 4;
 		    vlTOPp->v__DOT__send_data = 1;
-		    __Vdly__v__DOT__S1 = 4;
 		} else {
 		    ++(vlSymsp->__Vcoverage[8]);
+		    vlTOPp->v__DOT__S1 = 7;
 		    vlTOPp->load_dato = 0;
-		    __Vdly__v__DOT__S1 = 7;
 		    vlTOPp->soc = 0;
 		    vlTOPp->v__DOT__conta_tmp = (0xf 
 						 & ((IData)(1) 
@@ -498,16 +479,16 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 		    ++(vlSymsp->__Vcoverage[6]);
 		    if (vlTOPp->eoc) {
 			++(vlSymsp->__Vcoverage[4]);
-			__Vdly__v__DOT__S1 = 5;
+			vlTOPp->v__DOT__S1 = 5;
 		    } else {
 			++(vlSymsp->__Vcoverage[5]);
+			vlTOPp->v__DOT__S1 = 6;
 			vlTOPp->load_dato = 1;
-			__Vdly__v__DOT__S1 = 6;
 			vlTOPp->mux_en = 0;
 		    }
 		} else {
 		    ++(vlSymsp->__Vcoverage[10]);
-		    __Vdly__v__DOT__S1 = 3;
+		    vlTOPp->v__DOT__S1 = 3;
 		}
 	    }
 	} else {
@@ -516,30 +497,29 @@ void Vtop::_sequent__TOP__1(Vtop__Syms* __restrict vlSymsp) {
 		    ++(vlSymsp->__Vcoverage[13]);
 		    if (vlTOPp->v__DOT__rdy) {
 			++(vlSymsp->__Vcoverage[12]);
-			__Vdly__v__DOT__S1 = 0;
+			vlTOPp->v__DOT__S1 = 0;
 			vlTOPp->v__DOT__send_data = 0;
 		    } else {
 			++(vlSymsp->__Vcoverage[11]);
-			__Vdly__v__DOT__S1 = 3;
+			vlTOPp->v__DOT__S1 = 3;
 		    }
 		} else {
 		    ++(vlSymsp->__Vcoverage[3]);
+		    vlTOPp->v__DOT__S1 = 5;
 		    vlTOPp->soc = 1;
-		    __Vdly__v__DOT__S1 = 5;
 		}
 	    } else {
 		if ((1 & (IData)(vlTOPp->v__DOT__S1))) {
 		    ++(vlSymsp->__Vcoverage[2]);
-		    __Vdly__v__DOT__S1 = 2;
+		    vlTOPp->v__DOT__S1 = 2;
 		} else {
 		    ++(vlSymsp->__Vcoverage[1]);
+		    vlTOPp->v__DOT__S1 = 1;
 		    vlTOPp->mux_en = 1;
-		    __Vdly__v__DOT__S1 = 1;
 		}
 	    }
 	}
     }
-    vlTOPp->v__DOT__S1 = __Vdly__v__DOT__S1;
     vlTOPp->v__DOT__rdy = __Vdly__v__DOT__rdy;
 }
 

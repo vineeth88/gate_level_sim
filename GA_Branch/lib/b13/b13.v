@@ -69,225 +69,225 @@ parameter DelayTime = 104;
 
 always @ (posedge clock)
 begin
-	if (reset)
+	if (reset)		// 0
 	begin
-		S1 <= GP001;
+		S1 = GP001;
 		soc <= 0;
-		canale <= 0;
 		conta_tmp = 0;
 		send_data <= 0;
 		load_dato <= 0;
 		mux_en <= 0;
+		canale <= 0;
 	end
 	else
-	begin
+	begin		// 15
 		case (S1)
-			GP001:
+			GP001:		// 1
 			begin
 				mux_en <= 1;
-				S1 <= GP010;
+				S1 = GP010;
 			end
-			GP010:
+			GP010:		// 2
 			begin
-				S1 <= GP011;
+				S1 = GP011;
 			end
-			GP011:
+			GP011:		// 3
 			begin
 				soc <= 1;
-				S1 <= GP101;
+				S1 = GP101;
 			end
-			GP101:
+			GP101:		// 6
 			begin
-				if (eoc)
-					S1 <= GP101;
+				if (eoc)	// 4
+					S1 = GP101;
 				else
-				begin
+				begin		// 5
 					load_dato <= 1;
-					S1 <= GP110;
+					S1 = GP110;
 					mux_en <= 0;
 				end
 			end
-			GP110:
+			GP110:		// 8
 			begin
 				load_dato <= 0;
 				soc <= 0;
 				conta_tmp = conta_tmp + 1;
-				if (conta_tmp == 8)
+				if (conta_tmp == 8)		// 7
 					conta_tmp = 0;
 				canale <= conta_tmp;
-				S1 <= GP111;
+				S1 = GP111;
 			end
-			GP111:
+			GP111:		// 9
 			begin
 				send_data <= 1;
-				S1 <= GP100w;
+				S1 = GP100w;
 			end
-			GP100w:
+			GP100w:		// 10
 			begin
-				S1 <= GP100;
+				S1 = GP100;
 			end
-			GP100:
+			GP100:		// 13
 			begin
-				if (~rdy)
-					S1 <= GP100;
+				if (~rdy)	// 11
+					S1 = GP100;
 				else
-				begin
-					S1 <= GP001;
+				begin		// 12
+					S1 = GP001;
 					send_data <= 0;
 				end
 			end
-			default:
-				S1 <= S1;
+			default:	// 14
+				S1 = S1;
 		endcase
 	end
 end
 
 always @ (posedge clock)
 begin
-	if (reset)
+	if (reset)		// 16
 	begin
-		S2 <= `GP01;
+		S2 = `GP01;
 		rdy <= 0;
 		add_mpx2 <= 0;
-		mpx <= 0;
+		mpx = 0;
 		shot <= 0;
 	end
 	else
-	begin
+	begin			// 28
 		case (S2)
-			`GP01:
+			`GP01:		// 19
 			begin
-				if (send_data)
+				if (send_data)		// 17
 				begin
 					rdy <= 1;
-					S2 <= `GP10;
+					S2 = `GP10;
 				end
-				else
-					S2 <= `GP01;
+				else		// 18
+					S2 = `GP01;
 			end
-			`GP10:
+			`GP10:		// 20
 			begin
 				shot <= 1;
-				S2 <= `GP11;
+				S2 = `GP11;
 			end
-			`GP11:
+			`GP11:		// 25
 			begin
-				if (~confirm)
+				if (~confirm)	// 21
 				begin
 					shot <= 0;
-					S2 <= `GP11;
-				end
-				else
-				begin
-					if (~mpx)
+					S2 = `GP11;
+				end	
+				else		
+				begin		// 24
+					if (~mpx)	// 22
 					begin
 						add_mpx2 <= 1;
-						mpx <= 1;
-						S2 <= `GP10;
+						mpx = 1;
+						S2 = `GP10;
 					end
 					else
-					begin
-						 mpx <= 0;
+					begin		// 23
+						 mpx = 0;
 						 rdy <= 0;
-						 S2 <= `GP11w;
+						 S2 = `GP11w;
 					end
 				end
 			end
-			`GP11w:
+			`GP11w:		// 26
 			begin
-				S2 <= `GP01;
+				S2 = `GP01;
 			end
-			default:
-				S2 <= S2;
+			default:	// 27
+				S2 = S2;
 		endcase
 	end
 end
 
 always @ (posedge clock )
 begin
-	if (reset)
+	if (reset)		// 29
 	begin
 		load <= 0;
 		send <= 0;
 		confirm <= 0;
-		itfc_state <= `G_IDLE;
+		itfc_state = `G_IDLE;
 	end
 	else
-	begin
+	begin		// 38
 		case (itfc_state)
-			`G_IDLE:
+			`G_IDLE:	// 32
 			begin
-				if (shot)
+				if (shot)	// 30
 				begin
 					load <= 1;
 					confirm <= 0;
-					itfc_state <= `G_LOAD;
+					itfc_state = `G_LOAD;
 				end
 				else
-				begin
+				begin		// 31
 					confirm <= 0;
-					itfc_state <= `G_IDLE;
+					itfc_state = `G_IDLE;
 				end
 			end
-			`G_LOAD:
+			`G_LOAD:		// 33
 			begin
 				load <= 0;
 				send <= 1;
-				itfc_state <= `G_SEND;
+				itfc_state = `G_SEND;
 			end
-			`G_SEND:
+			`G_SEND:		// 34
 			begin
 				send <= 0;
-				itfc_state <= `G_WAIT_END;
+				itfc_state = `G_WAIT_END;
 			end
-			`G_WAIT_END:
+			`G_WAIT_END:	// 36
 			begin
-				if (tx_end)
+				if (tx_end)		// 35
 				begin
 					confirm <= 1;
-					itfc_state <= `G_IDLE;
+					itfc_state = `G_IDLE;
 				end
 			end
-			default:
-				itfc_state <= itfc_state;
+			default:	// 37
+				itfc_state = itfc_state;
 		endcase
 	end
 end
 
 always @ (posedge clock )
 begin
-	if (reset)
+	if (reset)		// 39
 	begin
+		tre = 0;
 		send_en <= 0;
 		out_reg <= 8'h00;
-		tre <= 0;
 		error <= 0;
 	end
 	else
-	begin
-		if (tx_end)
+	begin		// 47
+		if (tx_end)		// 40
 		begin
 			send_en <= 0;
-			tre <= 1;
+			tre = 1;
 		end
-		if (load)
+		if (load)		// 43
 		begin
-			if (~tre)
+			if (~tre)	// 41
 			begin
 				out_reg <= data_in;
-				tre <= 1;
+				tre = 1;
 				error <= 0;
 			end
-			else
+			else		// 42
 				error <= 1;
 		end
 		
-		if (send)
+		if (send)		// 46
 		begin
-			if ((~tre) || (~dsr))
+			if ((~tre) || (~dsr))	// 44
 				error <= 1;
 			else
-			begin
+			begin		// 45
 				error <= 0;
 				send_en <= 1;
 			end
@@ -297,79 +297,82 @@ end
 
 always @ (posedge clock)
 begin
-	if (reset)
+	if (reset)		// 48
 	begin
 		tx_end <= 0;
 		data_out <= 0;
-		next_bit <= `START_BIT;
-		tx_conta <= 0;
+		next_bit = `START_BIT;
+		tx_conta = 0;
 	end
 	else
-	begin
+	begin	// 63	
 		tx_end <= 0;
 		data_out <= 1;
-		if (send_en)
+		if (send_en)	// 61
 		begin
-			if (tx_conta > DelayTime)
+			if (tx_conta > DelayTime) 	// 60
 			begin
 				case (next_bit)
-					`START_BIT:
+					`START_BIT:		// 49
 					begin
 						data_out <= 0;
-						next_bit <= `BIT0;
+						next_bit = `BIT0;
 					end
-					`BIT0:
+					`BIT0:		// 50
 					begin
 						data_out <= out_reg[7];
-						next_bit <= `BIT1;
+						next_bit = `BIT1;
 					end
-					`BIT1:
+					`BIT1:		// 51
 					begin
 						data_out <= out_reg[6];
-						next_bit <= `BIT2;
+						next_bit = `BIT2;
 					end
-					`BIT2:
+					`BIT2:		// 52
 					begin
 						data_out <= out_reg[5];
-						next_bit <= `BIT3;
+						next_bit = `BIT3;
 					end
-					`BIT3:
+					`BIT3:		// 53
 					begin
 						data_out <= out_reg[4];
-						next_bit <= `BIT4;
+						next_bit = `BIT4;
 					end
-					`BIT4:
+					`BIT4:		// 54
 					begin
 						data_out <= out_reg[3];
-						next_bit <= `BIT5;
+						next_bit = `BIT5;
 					end
-					`BIT5:
+					`BIT5:		// 55
 					begin
 						data_out <= out_reg[2];
-						next_bit <= `BIT6;
+						next_bit = `BIT6;
 					end
-					`BIT6:
+					`BIT6:		// 56
 					begin
 						data_out <= out_reg[1];
-						next_bit <= `BIT7;
+						next_bit = `BIT7;
 					end
-					`BIT7:
+					`BIT7:		// 57
 					begin
 						data_out <= out_reg[0];
-						next_bit <= `STOP_BIT;
+						next_bit = `STOP_BIT;
 					end
-					`STOP_BIT:
+					`STOP_BIT:	// 58
 					begin
 						data_out <= 1;
-						next_bit <= `START_BIT;
+						next_bit = `START_BIT;
 						tx_end <= 1;
 					end
-					default:
-						next_bit <= next_bit;
+					default:	// 59
+						next_bit = next_bit;
 				endcase
-				tx_conta <= 0;
+				tx_conta = 0;
 			end
-		end
+			else begin	// 62 
+				tx_conta = tx_conta + 1;
+			end
+		end // if (send_en)
 	end
 end
 
