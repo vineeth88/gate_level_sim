@@ -23,11 +23,22 @@ const int NUM_STATE_BITS = 350; //253;
 const int NUM_CTRL_BITS = 270;	// TOD
 
 const int NUM_BRANCH = 211;
-const int NUM_VARS = 19;
-const int VAR_START_ARR[] = { 0, 32, 64, 96, 122, 123, 153, 154, 156, 178,
-						210, 212, 215, 216, 220, 252, 284, 316, 348};
-const int VAR_SIZE_ARR[]  = {32, 32, 32, 26,   1,  30,   1,   2,  32,  32,
-						  2,   3,   1,   4,  32,  32,  32,  32,   2};
+// metX
+const int NUM_VARS = 23;
+const int VAR_START_ARR[] = { 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 
+						96, 104, 112, 120, 122, 123, 131, 139, 147, 153, 154};
+const int VAR_SIZE_ARR[]  = { 8, 8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8, 
+						 8,   8,   8,   2,   1,   8,   8,   8,   6,  1,   2};
+//// metX2
+//const int NUM_VARS = 8;
+//const int VAR_START_ARR[] = { 0, 32, 64, 96, 122, 123, 153, 154};
+//const int VAR_SIZE_ARR[]  = {32, 32, 32, 26,   1,  30,   1,   2};
+//metX3
+//const int NUM_VARS = 19;
+//const int VAR_START_ARR[] = { 0, 32, 64, 96, 122, 123, 153, 154, 156, 178,
+//						210, 212, 215, 216, 220, 252, 284, 316, 348};
+//const int VAR_SIZE_ARR[]  = {32, 32, 32, 26,   1,  30,   1,   2,  32,  32,
+//						  2,   3,   1,   4,  32,  32,  32,  32,   2};
 
 void set_input(Vtop*, const vecIn_t&);
 // Functions
@@ -36,8 +47,8 @@ inline
 bool IsDefaultBranch(const int i)
 {
     return ((i == 80) || (i == 95) || 
-			(i == 17) || (i == 21) ||
-			(i == 47) || (i == 191) ||
+//			(i == 17) || (i == 21) ||
+//			(i == 47) || (i == 191) ||
 			(i == 105) || (i == 115) || 
 			(i == 125) || (i == 135) || 
 			(i == 145) || (i == 155) || 

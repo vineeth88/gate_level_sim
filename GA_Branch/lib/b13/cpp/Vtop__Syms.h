@@ -25,7 +25,7 @@ class Vtop__Syms : public VerilatedSyms {
     Vtop*                          TOPp;
     
     // COVERAGE
-    uint32_t	__Vcoverage[63];
+    uint32_t	__Vcoverage[64];
     
     // SCOPE NAMES
     
